@@ -1,0 +1,148 @@
+{
+  "name": "freetoken-pages",
+  "description": "脱敏 fixture：模拟官方 NotionNext getPageProperties/adjustPageProperties 输出形态的 allPages 摘要行。全部为虚构数据（demo/ 命名空间），不含任何真实凭据、token、业务数据。覆盖场景：代表行+Invisible 平台合并行、精确重复、人工去重 duplicate、官方坏 JSON 已降级 {}、ext 原始字符串兜底、坏值降级、过期派生、slug 兜底。",
+  "pages": [
+    {
+      "id": "p-demo-alpha-2",
+      "title": "旧名称",
+      "summary": "更长的补充描述应被采用",
+      "slug": "",
+      "href": "",
+      "status": "Invisible",
+      "type": "Post",
+      "category": ["通用"],
+      "tags": ["工具"],
+      "date": { "start_date": "2026-09-01" },
+      "ext": {
+        "modelId": "demo/alpha:free",
+        "provider": "Demo Provider",
+        "platforms": ["FreeLLMAPI"],
+        "context": 131072,
+        "capabilities": { "vision": false, "tools": false, "reasoning": true },
+        "limitsNote": "注册送额度",
+        "verifiedAt": "2026-09-01",
+        "verificationStatus": "pending"
+      }
+    },
+    {
+      "id": "p-demo-alpha",
+      "title": "Demo Alpha",
+      "summary": "基础描述",
+      "slug": "demo--alpha--free",
+      "href": "/article/demo--alpha--free",
+      "status": "Published",
+      "type": "Post",
+      "category": ["通用"],
+      "tags": ["工具"],
+      "date": { "start_date": "2026-09-05" },
+      "ext": {
+        "modelId": "demo/alpha:free",
+        "provider": "",
+        "platforms": ["OpenRouter"],
+        "context": 262144,
+        "capabilities": { "vision": false, "tools": true, "reasoning": true },
+        "limitsNote": "约20次/分·50次/天",
+        "verifiedAt": "2026-09-09",
+        "verificationStatus": "verified",
+        "sourceUrl": "https://example.com/alpha"
+      }
+    },
+    {
+      "id": "p-demo-alpha-3",
+      "title": "",
+      "summary": "",
+      "slug": "",
+      "status": "Invisible",
+      "type": "Post",
+      "ext": {
+        "modelId": "demo/alpha:free",
+        "platforms": ["OpenRouter"]
+      }
+    },
+    {
+      "id": "p-demo-alpha-4",
+      "title": "",
+      "summary": "",
+      "slug": "",
+      "status": "Invisible",
+      "type": "Post",
+      "ext": "{\"modelId\":\"demo/alpha:free\",\"platforms\":[\"RawHub\"]}"
+    },
+    {
+      "id": "p-dup-legacy",
+      "title": "旧模型",
+      "summary": "",
+      "slug": "",
+      "status": "Invisible",
+      "type": "Post",
+      "ext": {
+        "modelId": "demo/legacy",
+        "provider": "Demo Provider",
+        "platforms": ["OpenRouter"],
+        "context": 8192,
+        "verificationStatus": "duplicate"
+      }
+    },
+    {
+      "id": "p-bad-ext",
+      "title": "脏数据",
+      "summary": "",
+      "slug": "",
+      "status": "Published",
+      "type": "Post",
+      "ext": {}
+    },
+    {
+      "id": "p-demo-beta",
+      "title": "Demo Beta",
+      "summary": "一个即将过期的模型",
+      "slug": "",
+      "href": "",
+      "status": "Published",
+      "type": "Post",
+      "ext": {
+        "modelId": "demo/beta",
+        "provider": "Demo Provider",
+        "platforms": ["OpenRouter"],
+        "context": 8192,
+        "capabilities": { "vision": false, "tools": false, "reasoning": false },
+        "limitsNote": "",
+        "verifiedAt": "2026-08-01",
+        "verificationStatus": "verified"
+      }
+    },
+    {
+      "id": "p-demo-gamma",
+      "title": "Demo Gamma",
+      "summary": "坏值降级行",
+      "slug": "",
+      "status": "Published",
+      "type": "Post",
+      "ext": {
+        "modelId": "demo/gamma",
+        "platforms": "OpenRouter，SiliconFlow",
+        "context": "abc",
+        "capabilities": "yes",
+        "verifiedAt": "not-a-date",
+        "verificationStatus": "已核实"
+      }
+    },
+    {
+      "id": "p-demo-delta",
+      "title": "Demo Delta",
+      "summary": "边界过期行",
+      "slug": "",
+      "status": "Published",
+      "type": "Post",
+      "ext": {
+        "modelId": "demo/delta",
+        "provider": "Demo Provider",
+        "platforms": ["DemoHub"],
+        "context": 16384,
+        "capabilities": { "vision": true, "tools": false, "reasoning": true },
+        "verifiedAt": "2026-09-09",
+        "verificationStatus": "verified"
+      }
+    }
+  ]
+}
