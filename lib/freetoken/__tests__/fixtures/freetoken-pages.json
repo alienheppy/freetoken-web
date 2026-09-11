@@ -10,7 +10,7 @@
       "href": "",
       "status": "Invisible",
       "type": "Post",
-      "category": ["通用"],
+      "category": "通用",
       "tags": ["工具"],
       "date": { "start_date": "2026-09-01" },
       "ext": {
@@ -32,7 +32,7 @@
       "href": "/article/demo--alpha--free",
       "status": "Published",
       "type": "Post",
-      "category": ["通用"],
+      "category": "通用",
       "tags": ["工具"],
       "date": { "start_date": "2026-09-05" },
       "ext": {
@@ -189,6 +189,34 @@
         "platforms": ["OpenRouter"],
         "context": 4096,
         "verificationStatus": "pending"
+      }
+    },
+    {
+      "id": "p-inv-only-1",
+      "title": "纯 Invisible 模型",
+      "summary": "只有 Invisible 行、无 Published 代表行，不应进入公开合并结果",
+      "slug": "",
+      "status": "Invisible",
+      "type": "Post",
+      "ext": {
+        "modelId": "demo/inv-only",
+        "provider": "Demo Provider",
+        "platforms": ["OpenRouter"],
+        "context": 8192,
+        "verifiedAt": "2026-09-01",
+        "verificationStatus": "verified"
+      }
+    },
+    {
+      "id": "p-inv-only-2",
+      "title": "",
+      "summary": "",
+      "slug": "",
+      "status": "Invisible",
+      "type": "Post",
+      "ext": {
+        "modelId": "demo/inv-only",
+        "platforms": ["FreeLLMAPI"]
       }
     }
   ]
