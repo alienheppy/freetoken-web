@@ -1,6 +1,6 @@
 {
   "name": "freetoken-pages",
-  "description": "脱敏 fixture：模拟官方 NotionNext getPageProperties/adjustPageProperties 输出形态的 allPages 摘要行。全部为虚构数据（demo/ 命名空间），不含任何真实凭据、token、业务数据。覆盖场景：代表行+Invisible 平台合并行、精确重复、人工去重 duplicate、官方坏 JSON 已降级 {}、ext 原始字符串兜底、坏值降级、过期派生、slug 兜底。",
+  "description": "脱敏 fixture：模拟官方 NotionNext getPageProperties/adjustPageProperties 输出形态的 allPages 摘要行。全部为虚构数据（demo/ 命名空间），不含任何真实凭据、token、业务数据。覆盖场景：代表行+Invisible 平台合并行、精确重复、人工去重 duplicate、官方坏 JSON 已降级 {}、ext 原始字符串兜底、坏值降级、过期派生、slug 兜底、QA 状态门禁（Draft/Review 行跳过且不污染合并）。",
   "pages": [
     {
       "id": "p-demo-alpha-2",
@@ -142,6 +142,53 @@
         "capabilities": { "vision": true, "tools": false, "reasoning": true },
         "verifiedAt": "2026-09-09",
         "verificationStatus": "verified"
+      }
+    },
+    {
+      "id": "p-demo-alpha-draft",
+      "title": "Draft 名称不应生效",
+      "summary": "这是一段比代表行更长更长的 Draft 简介，不应被合并采用（门禁应跳过 Draft 行）",
+      "slug": "",
+      "status": "Draft",
+      "type": "Post",
+      "ext": {
+        "modelId": "demo/alpha:free",
+        "provider": "DraftProvider",
+        "platforms": ["DraftHub"],
+        "context": 999999,
+        "capabilities": { "vision": true, "tools": true, "reasoning": true },
+        "verifiedAt": "2026-12-31",
+        "verificationStatus": "verified"
+      }
+    },
+    {
+      "id": "p-draft-only",
+      "title": "纯 Draft 模型",
+      "summary": "只有 Draft 行，不应出现在公开合并结果",
+      "slug": "",
+      "status": "Draft",
+      "type": "Post",
+      "ext": {
+        "modelId": "demo/draft-only",
+        "provider": "Demo Provider",
+        "platforms": ["OpenRouter"],
+        "context": 4096,
+        "verificationStatus": "pending"
+      }
+    },
+    {
+      "id": "p-review-only",
+      "title": "Review 状态模型",
+      "summary": "其它状态行，同样不应进入公开合并结果",
+      "slug": "",
+      "status": "Review",
+      "type": "Post",
+      "ext": {
+        "modelId": "demo/review-only",
+        "provider": "Demo Provider",
+        "platforms": ["OpenRouter"],
+        "context": 4096,
+        "verificationStatus": "pending"
       }
     }
   ]
