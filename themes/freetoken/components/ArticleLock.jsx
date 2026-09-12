@@ -24,7 +24,7 @@ export default function ArticleLock({ validPassword }) {
   }
 
   return (
-    <>
+    <div className='hero'>
       <SmartLink href='/' className='back' data-testid='ft-lock-back'>
         <span className='chev'>‹</span>
         返回模型库
@@ -52,6 +52,6 @@ export default function ArticleLock({ validPassword }) {
           密码错误，请重试
         </div>
       )}
-    </>
+    </div>
   )
 }
