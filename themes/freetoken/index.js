@@ -10,6 +10,7 @@ import { useGlobal } from '@/lib/global'
 import { isBrowser } from '@/lib/utils'
 
 import CONFIG from './config'
+import ArticleLock from './components/ArticleLock'
 import Hero from './components/Hero'
 import LayoutBase from './components/LayoutBase'
 import ModelCard from './components/ModelCard'
@@ -95,7 +96,7 @@ const LayoutPostList = props => {
  *       → 快速接入（curl + 拷贝）→ Notion 正文 → 页脚报告入口
  */
 const LayoutSlug = props => {
-  const { post, lock } = props
+  const { post, lock, validPassword } = props
   const router = useRouter()
   const waiting404 = siteConfig('POST_WAITING_TIME_FOR_404') * 1000
   const model = useMemo(() => adaptPost(post), [post])
@@ -121,8 +122,8 @@ const LayoutSlug = props => {
 
   if (lock) {
     return (
-      <div className='hero'>
-        <div className='missing'>该文章需输入密码后查看</div>
+      <div className='detail'>
+        <ArticleLock validPassword={validPassword} />
       </div>
     )
   }
