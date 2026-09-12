@@ -1,20 +1,10 @@
 'use client'
 
-/**
- * Freetoken 自定义导航主题 - 阶段 1 最小可构建骨架
- * 技术基座：NotionNext（仅 themes/freetoken 内实现，不修改官方核心、themes/nav 或原项目）
- * 导出官方契约的 9 个 Layout 组件：
- * LayoutBase / LayoutIndex / LayoutPostList / LayoutSlug / LayoutSearch /
- * LayoutArchive / LayoutCategoryIndex / LayoutTagIndex / Layout404
- * 阶段 1 不接真实 ext 业务数据，仅使用 NotionNext 通用 post 字段做占位渲染。
- */
-
 import { useRouter } from 'next/router'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 
 import NotionIcon from '@/components/NotionIcon'
 import NotionPage from '@/components/NotionPage'
-import SearchInput from './components/SearchInput'
 import SmartLink from '@/components/SmartLink'
 import { siteConfig } from '@/lib/config'
 import { useGlobal } from '@/lib/global'
@@ -23,15 +13,23 @@ import { isBrowser } from '@/lib/utils'
 import CONFIG from './config'
 import { Style } from './style'
 import LayoutBase from './components/LayoutBase'
+import ModelCard from './components/ModelCard'
+import ModelFacts from './components/ModelFacts'
+import PlatformGrid from './components/PlatformGrid'
+import SearchInput from './components/SearchInput'
+import StatsStrip from './components/StatsStrip'
+import { adaptPost, adaptPosts } from './lib/adaptModel'
 
 /**
- * 首页：展示苹果风 Hero + 统计占位 + 简化列表
+ * 首页：Hero + 真实统计条 + 模型卡片 + 平台并集
+ * posts 来自官方 SiteDataApi（首页为 Published 列表）；适配只做一次（adaptPosts 记忆化）
  */
 const LayoutIndex = props => {
   const { posts } = props
   const heroTitle = siteConfig('FREETOKEN_HERO_TITLE', null, CONFIG)
   const heroSub = siteConfig('FREETOKEN_HERO_SUB', null, CONFIG)
   const eyebrow = siteConfig('FREETOKEN_HERO_EYEBROW', null, CONFIG)
+  const models = useMemo(() => adaptPosts(posts), [posts])
 
   return (
     <div className='ft-hero'>
@@ -47,66 +45,47 @@ const LayoutIndex = props => {
         </SmartLink>
       </div>
 
-      <section className='ft-strip mt-16 rounded-2xl'>
-        <div className='ft-strip-in'>
-          <div className='ft-stat'>
-            <div className='n'>{posts?.length || 0}</div>
-            <div className='l'>已收录模型</div>
-          </div>
-          <div className='ft-stat'>
-            <div className='n'>0</div>
-            <div className='l'>平台</div>
-          </div>
-          <div className='ft-stat'>
-            <div className='n'>30</div>
-            <div className='l'>验证周期/天</div>
-          </div>
-          <div className='ft-stat'>
-            <div className='n'>0</div>
-            <div className='l'>更新</div>
-          </div>
-        </div>
-      </section>
+      <StatsStrip models={models} />
 
       <section id='models' className='ft-section pb-24'>
-        <h2>模型库</h2>
-        <p className='ft-secsub'>即将与 Notion 后台同步，阶段 1 仅做占位展示。</p>
+        <h2>免费模型库。</h2>
+        <p className='ft-secsub'>
+          OpenAI 兼容接口，注册获取 Key，替换 base_url 即可调用。数据由 Notion
+          后台同步维护。
+        </p>
+        <div className='ft-notice'>
+          免费额度具有时效性，随时可能调整。每条数据均标注核实日期与来源，请以平台官网为准。
+        </div>
         <div className='mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-          {posts?.slice(0, 6).map(post => (
-            <SmartLink
-              key={post.id}
-              href={post.href || '/'}
-              className='ft-card p-5 block text-left'>
-              <div className='flex items-center gap-3 mb-3'>
-                {siteConfig('POST_TITLE_ICON') && (
-                  <NotionIcon icon={post.pageIcon} />
-                )}
-                <h3 className='font-semibold text-lg'>{post.title}</h3>
-              </div>
-              <p className='text-sm text-[var(--ft-sub)] line-clamp-3'>
-                {post.summary}
-              </p>
-            </SmartLink>
+          {models.map(model => (
+            <ModelCard key={model.id || model.href} model={model} />
           ))}
         </div>
+        {models.length === 0 && (
+          <div className='mt-8 p-8 ft-card text-center text-[var(--ft-sub)]'>
+            暂无已发布的模型，等待 Notion 后台同步。
+          </div>
+        )}
       </section>
 
-      <section className='ft-section pb-24'>
-        <h2>平台</h2>
-        <p className='ft-secsub'>后续从 Notion 数据库中自动汇总。</p>
-        <div className='mt-8 p-8 ft-card text-center text-[var(--ft-sub)]'>
-          阶段 2 接入真实平台数据
-        </div>
+      <section id='platforms' className='ft-section pb-24'>
+        <h2>免费平台一览。</h2>
+        <p className='ft-secsub'>
+          平台由已发布模型行的 ext.platforms 自动汇总；额度与可用性请以各平台官网为准。
+        </p>
+        <PlatformGrid models={models} />
       </section>
     </div>
   )
 }
 
 /**
- * 文章列表（分类/标签/搜索结果页面）
+ * 文章列表（分类/标签/搜索结果页面）：同一套真实模型卡片
  */
 const LayoutPostList = props => {
   const { posts, category, tag } = props
+  const models = useMemo(() => adaptPosts(posts), [posts])
+
   return (
     <div className='ft-section pb-24'>
       {(category || tag) && (
@@ -116,34 +95,27 @@ const LayoutPostList = props => {
         </h2>
       )}
       <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-        {posts?.map(post => (
-          <SmartLink
-            key={post.id}
-            href={post.href || '/'}
-            className='ft-card p-5 block text-left'>
-            <div className='flex items-center gap-3 mb-3'>
-              {siteConfig('POST_TITLE_ICON') && (
-                <NotionIcon icon={post.pageIcon} />
-              )}
-              <h3 className='font-semibold text-lg'>{post.title}</h3>
-            </div>
-            <p className='text-sm text-[var(--ft-sub)] line-clamp-3'>
-              {post.summary}
-            </p>
-          </SmartLink>
+        {models.map(model => (
+          <ModelCard key={model.id || model.href} model={model} />
         ))}
       </div>
+      {models.length === 0 && (
+        <div className='mt-8 p-8 ft-card text-center text-[var(--ft-sub)]'>
+          没有符合条件的模型。
+        </div>
+      )}
     </div>
   )
 }
 
 /**
- * 文章详情页
+ * 文章详情页：Notion 正文 + Freetoken 业务信息区（平台/额度/核实日期/截止提示/来源）
  */
 const LayoutSlug = props => {
-  const { post, lock, validPassword } = props
+  const { post, lock } = props
   const router = useRouter()
   const waiting404 = siteConfig('POST_WAITING_TIME_FOR_404') * 1000
+  const model = useMemo(() => adaptPost(post), [post])
 
   useEffect(() => {
     if (!post) {
@@ -175,12 +147,16 @@ const LayoutSlug = props => {
 
   return (
     <div className='ft-container pt-8 pb-24'>
+      {model.provider && <div className='ft-eyebrow'>{model.provider}</div>}
       <h1 className='text-3xl md:text-4xl font-bold tracking-tight pt-4 md:pt-12'>
         {siteConfig('POST_TITLE_ICON') && <NotionIcon icon={post.pageIcon} />}
         {post.title}
       </h1>
+      {model.desc && <p className='ft-detail-sub'>{model.desc}</p>}
 
-      <section className='px-1 mt-6'>
+      <ModelFacts model={model} />
+
+      <section className='px-1 mt-10'>
         <div id='article-wrapper'>
           <NotionPage post={post} />
         </div>
