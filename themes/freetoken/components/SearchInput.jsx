@@ -67,6 +67,7 @@ const SearchInput = ({ currentTag, keyword, cRef }) => {
       <input
         ref={searchInputRef}
         type='text'
+        aria-label='站内搜索'
         placeholder={placeholder}
         defaultValue={keyword || ''}
         onKeyUp={handleKeyUp}

@@ -190,6 +190,141 @@ const Style = () => (
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
     }
 
+    /* 待核实/陈旧条目弱化显示；已过期进一步降透明度 */
+    #theme-freetoken .ft-card.is-weak,
+    #theme-freetoken .ft-facts.is-stale {
+      opacity: 0.82;
+    }
+
+    #theme-freetoken .ft-card.is-stale {
+      opacity: 0.68;
+    }
+
+    #theme-freetoken .ft-mcard {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    #theme-freetoken .ft-mcard-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    #theme-freetoken .ft-prov {
+      font-size: 12px;
+      color: var(--ft-faint);
+      margin-top: 2px;
+    }
+
+    #theme-freetoken .ft-mdesc {
+      font-size: 13px;
+      color: var(--ft-sub);
+      margin-top: 12px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    #theme-freetoken .ft-mtags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 14px;
+    }
+
+    #theme-freetoken .ft-ctxrow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--ft-faint);
+      margin-top: 16px;
+    }
+
+    #theme-freetoken .ft-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 980px;
+      white-space: nowrap;
+    }
+
+    #theme-freetoken .ft-badge-ok {
+      background: rgba(52, 199, 89, 0.14);
+      color: #248a3d;
+    }
+
+    #theme-freetoken .ft-badge-pending {
+      background: rgba(255, 149, 18, 0.16);
+      color: var(--ft-amber);
+    }
+
+    #theme-freetoken .ft-badge-dup {
+      background: var(--ft-bg-alt);
+      color: var(--ft-faint);
+    }
+
+    .dark #theme-freetoken .ft-badge-ok {
+      color: #30d158;
+    }
+
+    #theme-freetoken .ft-strip-caps {
+      grid-column: 1 / -1;
+      font-size: 12px;
+      color: var(--ft-faint);
+    }
+
+    #theme-freetoken .ft-facts {
+      background: var(--ft-bg-alt);
+      border: 1px solid var(--ft-hairline);
+    }
+
+    #theme-freetoken .ft-fact-l {
+      font-size: 12px;
+      color: var(--ft-faint);
+    }
+
+    #theme-freetoken .ft-fact-v {
+      font-size: 15px;
+      margin-top: 4px;
+    }
+
+    #theme-freetoken .ft-limits {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--ft-hairline);
+    }
+
+    #theme-freetoken .ft-link {
+      color: var(--ft-blue);
+      word-break: break-all;
+    }
+
+    #theme-freetoken .ft-eyebrow {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ft-blue);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding-top: 24px;
+    }
+
+    #theme-freetoken .ft-detail-sub {
+      font-size: 19px;
+      color: var(--ft-sub);
+      margin-top: 10px;
+    }
+
+    #theme-freetoken .ft-platcount {
+      font-size: 12px;
+      color: var(--ft-faint);
+      margin-top: 4px;
+    }
+
     #theme-freetoken .ft-pill {
       display: inline-flex;
       align-items: center;

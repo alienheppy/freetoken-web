@@ -1,8 +1,19 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 
 // styled-jsx 在 jsdom 中 unmount 时会因为 style.sheet 为 null 而报错。
 // 此处对主题测试单独 mock 掉 styled-jsx，不影响布局渲染验证。
 jest.mock('styled-jsx/style', () => () => null)
+
+// next/link 在 jsdom 中没有 Next Router 实例，点击会触发 navigation 异常；
+// 用等价的 <a> 桩替代（仅测试环境），保留 onClick 透传以便验证“点击后关闭菜单”
+jest.mock('next/link', () => ({
+  __esModule: true,
+  default: ({ href, children, ...rest }) => (
+    <a href={typeof href === 'string' ? href : '#'} {...rest}>
+      {children}
+    </a>
+  )
+}))
 
 // NotionPage 依赖 react-notion-x ESM，jsdom 中不做真实渲染
 jest.mock('@/components/NotionPage', () => ({
@@ -62,9 +73,45 @@ jest.mock('@/lib/config', () => ({
   }
 }))
 
+/** 首页/列表用的已发布模型（含真实 ext 字段） */
 const mockPosts = [
-  { id: 'p1', title: 'GPT-4o', summary: 'summary1', href: '/gpt-4o', ext: { capabilities: { vision: true } } },
-  { id: 'p2', title: 'Claude 3', summary: 'summary2', href: '/claude-3', ext: {} }
+  {
+    id: 'p1',
+    title: 'GPT-4o',
+    summary: 'summary1',
+    href: '/gpt-4o',
+    ext: {
+      provider: 'OpenAI',
+      platforms: ['OpenRouter', 'GitHub Models'],
+      context: 131072,
+      capabilities: { vision: true, tools: 'true' },
+      verificationStatus: 'verified',
+      sourceUrl: 'https://openrouter.ai'
+    }
+  },
+  {
+    id: 'p2',
+    title: 'Claude 3',
+    summary: 'summary2',
+    href: '/claude-3',
+    ext: {
+      platforms: ['Groq Cloud'],
+      capabilities: { reasoning: true },
+      verificationStatus: 'pending'
+    }
+  },
+  {
+    id: 'p3',
+    title: 'Legacy Model',
+    summary: 'summary3',
+    href: '/legacy-model',
+    ext: {
+      platforms: 'OpenRouter、Groq Cloud',
+      verifiedAt: '2020-01-01',
+      expiresHint: '2020-01-02',
+      verificationStatus: 'verified'
+    }
+  }
 ]
 
 const mockCategoryOptions = [
@@ -78,29 +125,97 @@ const mockTagOptions = [
 ]
 
 const mockArchivePosts = {
-  '2024': mockPosts
+  '2024': [mockPosts[0]]
 }
 
+/** 菜单 fixture：customMenu（title + SubMenu）与 customNav（name 字段） */
+const mockCustomMenu = [
+  {
+    title: '模型库',
+    href: '/#models',
+    show: true,
+    subMenus: [{ title: '开源模型', href: '/category/oss', show: true }]
+  },
+  { title: '平台', href: '/#platforms', show: true },
+  { title: '暂不显示', href: '/hidden', show: false }
+]
+
+const mockCustomNav = [
+  { name: '关于我们', href: '/about', show: true },
+  { name: '提交模型', href: '/submit', show: true }
+]
+
 describe('themes/freetoken 官方 9 Layout 契约', () => {
-  test('LayoutBase 渲染子元素', () => {
-    render(
+  test('LayoutBase 渲染子元素且样式作用域在 #theme-freetoken 根节点', () => {
+    const { container } = render(
       <LayoutBase siteInfo={{ title: 'Hub' }}>
         <div data-testid='child'>content</div>
       </LayoutBase>
     )
     expect(screen.getByTestId('child')).toBeInTheDocument()
+    expect(container.querySelector('#theme-freetoken')).toBeTruthy()
   })
 
-  test('LayoutIndex 渲染 Hero 与模型占位', () => {
+  test('LayoutIndex 渲染 Hero、真实统计条与模型卡片（无阶段占位文案）', () => {
     render(<LayoutIndex posts={mockPosts} siteInfo={{ title: 'Hub' }} />)
     expect(screen.getByText(/免费的大模型/)).toBeInTheDocument()
+
+    // 模型卡片：模型名 / 平台 / 能力标签 / 审核状态
     expect(screen.getByText('GPT-4o')).toBeInTheDocument()
+    expect(screen.getAllByText('OpenRouter').length).toBeGreaterThan(0)
+    expect(screen.getByText('视觉')).toBeInTheDocument()
+    expect(screen.getAllByText('已核实').length).toBeGreaterThan(0)
+    expect(screen.getByText('待核实')).toBeInTheDocument()
+    expect(screen.getAllByTestId('ft-model-card')).toHaveLength(3)
+
+    // 统计条：真实来自 statsFromModels（同一纯函数在同一输入下的结果）
+    const stats = screen.getByTestId('ft-stats')
+    const expected = statsFromModels(adaptPosts(mockPosts))
+    expect(within(stats).getByText('已收录模型')).toBeInTheDocument()
+    expect(screen.getByTestId('ft-stat-modelCount').textContent).toBe(
+      String(expected.modelCount)
+    )
+    expect(screen.getByTestId('ft-stat-platformCount').textContent).toBe(
+      String(expected.platformCount)
+    )
+    expect(screen.getByTestId('ft-stat-capabilityTotal').textContent).toBe(
+      String(
+        expected.capabilityCounts.vision +
+          expected.capabilityCounts.tools +
+          expected.capabilityCounts.reasoning
+      )
+    )
+    expect(screen.getByTestId('ft-stat-reviewSoonCount').textContent).toBe(
+      String(expected.reviewSoonCount)
+    )
+    // legend 行展示三项能力明细（视觉/工具/推理）
+    expect(within(stats).getByText(/视觉 1/)).toBeInTheDocument()
+
+    // 已过期条目弱化 + 标记
+    expect(screen.getByText('可能过期')).toBeInTheDocument()
+
+    // 平台并集区块
+    expect(screen.getByText('免费平台一览。')).toBeInTheDocument()
+    expect(screen.getAllByTestId('ft-platform')).toHaveLength(
+      platformSummary(adaptPosts(mockPosts)).length
+    )
+
+    // 阶段 1 的硬编码占位必须消失
+    expect(screen.queryByText(/阶段/)).toBeNull()
+    expect(screen.queryByText('验证周期/天')).toBeNull()
   })
 
-  test('LayoutPostList 渲染分类标题和占位卡片', () => {
+  test('LayoutPostList 渲染分类标题与真实模型卡片', () => {
     render(<LayoutPostList posts={mockPosts} category='LLM' />)
     expect(screen.getByText(/LLM/)).toBeInTheDocument()
     expect(screen.getByText('Claude 3')).toBeInTheDocument()
+    expect(screen.getAllByText('Groq Cloud').length).toBeGreaterThan(0)
+    expect(screen.getAllByTestId('ft-model-card')).toHaveLength(3)
+  })
+
+  test('LayoutPostList 空列表有兜底文案', () => {
+    render(<LayoutPostList posts={[]} category='LLM' />)
+    expect(screen.getByText('没有符合条件的模型。')).toBeInTheDocument()
   })
 
   test('LayoutSlug 渲染文章标题', () => {
@@ -108,9 +223,66 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(screen.getByRole('heading', { name: 'Test Post' })).toBeInTheDocument()
   })
 
-  test('LayoutSearch 渲染搜索标题与输入框', () => {
+  test('LayoutSlug 展示平台/额度说明/核实日期/截止提示/来源，不出现“接口正常”', () => {
+    const post = {
+      id: 'd1',
+      title: 'DeepSeek V3',
+      summary: '性价比之选',
+      href: '/deepseek-v3',
+      ext: {
+        provider: 'DeepSeek',
+        platforms: ['DeepSeek 开放平台', '火山方舟'],
+        context: 131072,
+        capabilities: { tools: true, reasoning: 'true' },
+        limitsNote: '注册赠送额度，用完需充值',
+        verifiedAt: '2026-09-09',
+        expiresHint: '2020-01-01',
+        verificationStatus: 'pending',
+        sourceUrl: 'https://platform.deepseek.com'
+      }
+    }
+    render(<LayoutSlug post={post} />)
+    expect(screen.getByRole('heading', { name: 'DeepSeek V3' })).toBeInTheDocument()
+
+    const facts = screen.getByTestId('ft-facts')
+    expect(within(facts).getByText('DeepSeek 开放平台')).toBeInTheDocument()
+    expect(within(facts).getByText('火山方舟')).toBeInTheDocument()
+    expect(within(facts).getByText('注册赠送额度，用完需充值')).toBeInTheDocument()
+    expect(within(facts).getByText('2026-09-09')).toBeInTheDocument()
+    expect(within(facts).getByText('2020-01-01')).toBeInTheDocument()
+    expect(within(facts).getByText('待核实')).toBeInTheDocument()
+    expect(within(facts).getByText('可能已变化，请以平台官网为准。', { exact: false })).toBeInTheDocument()
+
+    const sourceLink = within(facts).getByRole('link', {
+      name: 'https://platform.deepseek.com'
+    })
+    expect(sourceLink).toHaveAttribute('href', 'https://platform.deepseek.com')
+
+    // 未真实探测过的健康声明一律不得出现
+    expect(screen.queryByText(/接口正常/)).toBeNull()
+    expect(screen.queryByText(/接口异常/)).toBeNull()
+  })
+
+  test('LayoutSlug 来源链接仅允许 http(s)，非法协议降级为“未标注”', () => {
+    const post = {
+      id: 'd2',
+      title: 'Bad Source',
+      href: '/bad-source',
+      ext: { sourceUrl: 'javascript:alert(1)', verificationStatus: 'verified' }
+    }
+    render(<LayoutSlug post={post} />)
+    const facts = screen.getByTestId('ft-facts')
+    expect(within(facts).queryByText('javascript:alert(1)')).toBeNull()
+    expect(within(facts).getAllByText('未标注').length).toBeGreaterThan(0)
+    expect(document.querySelector('a[href^="javascript"]')).toBeNull()
+  })
+
+  test('LayoutSearch 渲染搜索标题与带 aria-label 的搜索框', () => {
     render(<LayoutSearch posts={mockPosts} keyword='gpt' />)
     expect(screen.getByText(/gpt/)).toBeInTheDocument()
+    expect(screen.getByLabelText('站内搜索')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '搜索' })).toBeInTheDocument()
+    expect(screen.getAllByTestId('ft-model-card')).toHaveLength(3)
   })
 
   test('LayoutArchive 渲染归档', () => {
@@ -137,6 +309,60 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
   test('THEME_CONFIG 包含 Freetoken 配置项', () => {
     expect(THEME_CONFIG.FREETOKEN_LOGO_TEXT).toBe('FreeTokenHub')
     expect(THEME_CONFIG.FREETOKEN_FALLBACK_MENU).toBeInstanceOf(Array)
+  })
+})
+
+describe('themes/freetoken 菜单与可访问性', () => {
+  test('菜单三级回退：customMenu → customNav → 内置回退', () => {
+    // 1) customMenu 优先，customNav 不参与
+    const { unmount } = render(
+      <LayoutBase customMenu={mockCustomMenu} customNav={mockCustomNav} siteInfo={{ title: 'Hub' }} />
+    )
+    expect(screen.getAllByText('模型库').length).toBeGreaterThan(0)
+    expect(screen.queryByText('关于我们')).toBeNull()
+    unmount()
+
+    // 2) 无 customMenu 时使用 customNav（name 字段）
+    render(<LayoutBase customNav={mockCustomNav} siteInfo={{ title: 'Hub' }} />)
+    expect(screen.getAllByText('关于我们').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('提交模型').length).toBeGreaterThan(0)
+    expect(screen.queryByText('关于')).toBeNull()
+  })
+
+  test('三级菜单都不存在时回退到 CONFIG.FREETOKEN_FALLBACK_MENU，并尊重 show:false', () => {
+    render(<LayoutBase siteInfo={{ title: 'Hub' }} />)
+    expect(screen.getAllByText('模型库').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('平台').length).toBeGreaterThan(0)
+    expect(screen.queryByText('暂不显示')).toBeNull()
+  })
+
+  test('customMenu 的 SubMenu 可展开（button + aria-expanded）', () => {
+    render(<LayoutBase customMenu={mockCustomMenu} siteInfo={{ title: 'Hub' }} />)
+    const toggle = screen.getByRole('button', { name: /模型库/ })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getAllByText('开源模型').length).toBeGreaterThan(0)
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  test('移动端菜单：点击后展开、点击链接后自动关闭', () => {
+    render(<LayoutBase customMenu={mockCustomMenu} siteInfo={{ title: 'Hub' }} />)
+    expect(screen.queryByTestId('ft-mobile-menu')).toBeNull()
+
+    const mobileToggle = screen.getByRole('button', { name: '切换菜单' })
+    expect(mobileToggle).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(mobileToggle)
+
+    const panel = screen.getByTestId('ft-mobile-menu')
+    expect(mobileToggle).toHaveAttribute('aria-expanded', 'true')
+    expect(within(panel).getAllByText('模型库').length).toBe(1)
+    expect(within(panel).getByText('开源模型')).toBeInTheDocument()
+
+    fireEvent.click(within(panel).getByText('模型库'))
+    expect(screen.queryByTestId('ft-mobile-menu')).toBeNull()
+    expect(mobileToggle).toHaveAttribute('aria-expanded', 'false')
   })
 })
 
