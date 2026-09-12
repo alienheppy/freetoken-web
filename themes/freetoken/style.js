@@ -978,6 +978,50 @@ const Style = () => (
       font-size: 15px;
     }
 
+    /* 锁定文章页（ArticleLock）：返回链接复用 .detail .back，仅补输入区 */
+    #theme-freetoken .lockinput {
+      display: block;
+      margin: 20px auto 12px;
+      width: min(320px, 80%);
+      padding: 10px 16px;
+      font-size: 15px;
+      font-family: inherit;
+      color: var(--txt);
+      background: var(--card);
+      border: 1px solid var(--hairline);
+      border-radius: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #theme-freetoken .lockinput:focus {
+      border-color: var(--blue);
+    }
+
+    #theme-freetoken .lockbtn {
+      display: inline-block;
+      padding: 10px 34px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #fff;
+      background: var(--blue);
+      border: none;
+      border-radius: 980px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    #theme-freetoken .lockbtn:hover {
+      opacity: 0.85;
+    }
+
+    #theme-freetoken .locktips {
+      margin-top: 14px;
+      text-align: center;
+      color: var(--amber);
+      font-size: 14px;
+    }
+
     @media (max-width: 900px) {
       #theme-freetoken .grid,
       #theme-freetoken .plats {
