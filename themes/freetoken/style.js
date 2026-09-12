@@ -10,8 +10,10 @@ import { themeConsoleStyle } from '@/lib/themeConsoleStyle'
  *   1. 原 CSS 变量块（作用在 :root 上的那一段）整体挂到主题根节点 `#theme-freetoken`（不再占用全局根变量）；
  *      原 `*` / `html` / `body` / `a` / `button` / `h1` / `h2` / `section` / `footer` / `nav`
  *      等全局元素选择器统一加 `#theme-freetoken` 前缀；
- *   2. Notion 正文区（`#article-wrapper` 子树）用 `:not(#article-wrapper ...)` 排除，
- *      确保官方 `NotionPage` 内容样式不被主题的元素级规则覆盖。
+ *   2. Notion 正文区（`#article-wrapper` 子树）用 `:where(X:not(#article-wrapper X))` 排除，
+ *      确保官方 `NotionPage` 内容样式不被主题的元素级规则覆盖；
+ *      `:where()` 参数特异性恒为 0；若不用 :where，排除选择器里的 `#article-wrapper`
+ *      会把特异性抬到 2 个 id，压过主题全部类规则（margin:0 auto / padding 等失效）。
  *
  * 另外两处“扩展”（原设计没有、主题场景必需，已在下方注释标明）：
  *   - `.dark #theme-freetoken`：深色模式变量（原设计无深色模式）；
@@ -47,7 +49,7 @@ const Style = () => (
     }
 
     /* 原 *{margin:0;padding:0;box-sizing:border-box} —— 限定主题内、排除正文区 */
-    #theme-freetoken *:not(#article-wrapper *) {
+    #theme-freetoken :where(*:not(#article-wrapper *)) {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
@@ -66,17 +68,17 @@ const Style = () => (
       min-height: 100vh;
     }
 
-    #theme-freetoken a:not(#article-wrapper a) {
+    #theme-freetoken :where(a:not(#article-wrapper a)) {
       color: inherit;
       text-decoration: none;
     }
 
-    #theme-freetoken button:not(#article-wrapper button) {
+    #theme-freetoken :where(button:not(#article-wrapper button)) {
       font-family: inherit;
     }
 
     /* nav */
-    #theme-freetoken nav:not(#article-wrapper nav) {
+    #theme-freetoken :where(nav:not(#article-wrapper nav)) {
       position: sticky;
       top: 0;
       z-index: 100;
@@ -86,7 +88,7 @@ const Style = () => (
       border-bottom: 1px solid var(--hairline);
     }
 
-    .dark #theme-freetoken nav:not(#article-wrapper nav) {
+    .dark #theme-freetoken :where(nav:not(#article-wrapper nav)) {
       background: rgba(0, 0, 0, 0.62);
     }
 
@@ -186,7 +188,7 @@ const Style = () => (
       margin-bottom: 10px;
     }
 
-    #theme-freetoken h1:not(#article-wrapper h1) {
+    #theme-freetoken :where(h1:not(#article-wrapper h1)) {
       font-size: 72px;
       font-weight: 700;
       letter-spacing: -0.028em;
@@ -268,7 +270,7 @@ const Style = () => (
     }
 
     /* sections */
-    #theme-freetoken section:not(#article-wrapper section) {
+    #theme-freetoken :where(section:not(#article-wrapper section)) {
       max-width: 980px;
       margin: 0 auto;
       padding: 110px 22px 0;
@@ -278,7 +280,7 @@ const Style = () => (
       margin-bottom: 30px;
     }
 
-    #theme-freetoken h2:not(#article-wrapper h2) {
+    #theme-freetoken :where(h2:not(#article-wrapper h2)) {
       font-size: 44px;
       font-weight: 700;
       letter-spacing: -0.022em;
@@ -674,7 +676,7 @@ const Style = () => (
     }
 
     /* footer */
-    #theme-freetoken footer:not(#article-wrapper footer) {
+    #theme-freetoken :where(footer:not(#article-wrapper footer)) {
       border-top: 1px solid var(--hairline);
       margin-top: 110px;
       background: var(--bg-alt);
@@ -735,7 +737,7 @@ const Style = () => (
       margin-bottom: 8px;
     }
 
-    #theme-freetoken .detail h1:not(#article-wrapper h1) {
+    #theme-freetoken .detail :where(h1:not(#article-wrapper h1)) {
       font-size: 56px;
       font-weight: 700;
       letter-spacing: -0.025em;
@@ -776,11 +778,11 @@ const Style = () => (
       font-weight: 600;
     }
 
-    #theme-freetoken .detail section:not(#article-wrapper section) {
+    #theme-freetoken .detail :where(section:not(#article-wrapper section)) {
       padding: 64px 22px 0;
     }
 
-    #theme-freetoken .detail h2:not(#article-wrapper h2) {
+    #theme-freetoken .detail :where(h2:not(#article-wrapper h2)) {
       font-size: 32px;
       font-weight: 700;
       letter-spacing: -0.02em;
@@ -800,7 +802,7 @@ const Style = () => (
       padding: 4px 0 42px;
     }
 
-    #theme-freetoken .band section:not(#article-wrapper section) {
+    #theme-freetoken .band :where(section:not(#article-wrapper section)) {
       padding-top: 54px;
     }
 
@@ -981,7 +983,7 @@ const Style = () => (
       #theme-freetoken .plats {
         grid-template-columns: repeat(2, 1fr);
       }
-      #theme-freetoken h1:not(#article-wrapper h1) {
+      #theme-freetoken :where(h1:not(#article-wrapper h1)) {
         font-size: 52px;
       }
       #theme-freetoken .stripin {
@@ -993,7 +995,7 @@ const Style = () => (
       #theme-freetoken .facts {
         grid-template-columns: repeat(2, 1fr);
       }
-      #theme-freetoken .detail h1:not(#article-wrapper h1) {
+      #theme-freetoken .detail :where(h1:not(#article-wrapper h1)) {
         font-size: 40px;
       }
     }
@@ -1003,10 +1005,10 @@ const Style = () => (
       #theme-freetoken .plats {
         grid-template-columns: 1fr;
       }
-      #theme-freetoken h1:not(#article-wrapper h1) {
+      #theme-freetoken :where(h1:not(#article-wrapper h1)) {
         font-size: 42px;
       }
-      #theme-freetoken h2:not(#article-wrapper h2) {
+      #theme-freetoken :where(h2:not(#article-wrapper h2)) {
         font-size: 32px;
       }
       #theme-freetoken .hero {
@@ -1028,7 +1030,7 @@ const Style = () => (
       #theme-freetoken .facts {
         grid-template-columns: 1fr;
       }
-      #theme-freetoken .detail h1:not(#article-wrapper h1) {
+      #theme-freetoken .detail :where(h1:not(#article-wrapper h1)) {
         font-size: 34px;
       }
     }
