@@ -3,7 +3,6 @@
 import { useRouter } from 'next/router'
 import { useEffect, useMemo } from 'react'
 
-import NotionIcon from '@/components/NotionIcon'
 import NotionPage from '@/components/NotionPage'
 import SmartLink from '@/components/SmartLink'
 import { siteConfig } from '@/lib/config'
@@ -11,111 +10,97 @@ import { useGlobal } from '@/lib/global'
 import { isBrowser } from '@/lib/utils'
 
 import CONFIG from './config'
-import { Style } from './style'
+import Hero from './components/Hero'
 import LayoutBase from './components/LayoutBase'
 import ModelCard from './components/ModelCard'
-import ModelFacts from './components/ModelFacts'
+import ModelCurl from './components/ModelCurl'
+import ModelDetailFacts from './components/ModelDetailFacts'
+import ModelDetailHero from './components/ModelDetailHero'
+import ModelOffers from './components/ModelOffers'
+import ModelToolbar from './components/ModelToolbar'
 import PlatformGrid from './components/PlatformGrid'
 import SearchInput from './components/SearchInput'
 import StatsStrip from './components/StatsStrip'
-import { adaptPost, adaptPosts } from './lib/adaptModel'
+import { adaptPost, adaptPosts, isStale } from './lib/adaptModel'
+import { useClientToday } from './lib/useClientToday'
 
 /**
- * 首页：Hero + 真实统计条 + 模型卡片 + 平台并集
- * posts 来自官方 SiteDataApi（首页为 Published 列表）；适配只做一次（adaptPosts 记忆化）
+ * 首页：原设计 page.jsx 结构（hero → strip → models → platforms）
+ * 数据：官方 SiteDataApi 注入的 posts（已发布），业务字段来自 ext（adaptPosts 只适配一次）
  */
 const LayoutIndex = props => {
   const { posts } = props
-  const heroTitle = siteConfig('FREETOKEN_HERO_TITLE', null, CONFIG)
-  const heroSub = siteConfig('FREETOKEN_HERO_SUB', null, CONFIG)
-  const eyebrow = siteConfig('FREETOKEN_HERO_EYEBROW', null, CONFIG)
   const models = useMemo(() => adaptPosts(posts), [posts])
+  const today = useClientToday()
 
   return (
-    <div className='ft-hero'>
-      <div className='eyebrow'>{eyebrow}</div>
-      <h1>{heroTitle}</h1>
-      <p className='sub'>{heroSub}</p>
-      <div className='cta'>
-        <SmartLink href='/#models' className='ft-btn ft-btn-primary'>
-          浏览模型库
-        </SmartLink>
-        <SmartLink href='/about' className='ft-btn ft-btn-ghost'>
-          了解更多
-        </SmartLink>
-      </div>
-
+    <>
+      <Hero />
       <StatsStrip models={models} />
 
-      <section id='models' className='ft-section pb-24'>
-        <h2>免费模型库。</h2>
-        <p className='ft-secsub'>
-          OpenAI 兼容接口，注册获取 Key，替换 base_url 即可调用。数据由 Notion
-          后台同步维护。
-        </p>
-        <div className='ft-notice'>
-          免费额度具有时效性，随时可能调整。每条数据均标注核实日期与来源，请以平台官网为准。
-        </div>
-        <div className='mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-          {models.map(model => (
-            <ModelCard key={model.id || model.href} model={model} />
-          ))}
-        </div>
-        {models.length === 0 && (
-          <div className='mt-8 p-8 ft-card text-center text-[var(--ft-sub)]'>
-            暂无已发布的模型，等待 Notion 后台同步。
+      <section id='models'>
+        <div className='sechead'>
+          <h2>{siteConfig('FREETOKEN_MODELS_TITLE', null, CONFIG)}</h2>
+          <div className='secsub'>
+            {siteConfig('FREETOKEN_MODELS_SUB', null, CONFIG)}
           </div>
-        )}
+          <div className='notice'>
+            {siteConfig('FREETOKEN_MODELS_NOTICE', null, CONFIG)}
+          </div>
+        </div>
+        <ModelToolbar models={models} today={today} />
       </section>
 
-      <section id='platforms' className='ft-section pb-24'>
-        <h2>免费平台一览。</h2>
-        <p className='ft-secsub'>
-          平台由已发布模型行的 ext.platforms 自动汇总；额度与可用性请以各平台官网为准。
-        </p>
+      <section id='platforms'>
+        <div className='sechead'>
+          <h2>{siteConfig('FREETOKEN_PLATFORMS_TITLE', null, CONFIG)}</h2>
+          <div className='secsub'>
+            {siteConfig('FREETOKEN_PLATFORMS_SUB', null, CONFIG)}
+          </div>
+        </div>
         <PlatformGrid models={models} />
       </section>
-    </div>
+    </>
   )
 }
 
 /**
- * 文章列表（分类/标签/搜索结果页面）：同一套真实模型卡片
+ * 列表页（分类 / 标签 / 搜索结果复用）：原设计卡片网格
  */
 const LayoutPostList = props => {
   const { posts, category, tag } = props
   const models = useMemo(() => adaptPosts(posts), [posts])
+  const today = useClientToday()
+  const heading =
+    category || (tag ? `#${tag}` : siteConfig('FREETOKEN_MODELS_TITLE', null, CONFIG))
 
   return (
-    <div className='ft-section pb-24'>
-      {(category || tag) && (
-        <h2 className='mb-6'>
-          {category && <i className='mr-2 fas fa-folder-open' />}
-          {category || `#${tag}`}
-        </h2>
-      )}
-      <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-        {models.map(model => (
-          <ModelCard key={model.id || model.href} model={model} />
-        ))}
+    <section>
+      <div className='sechead'>
+        <h2>{heading}</h2>
       </div>
-      {models.length === 0 && (
-        <div className='mt-8 p-8 ft-card text-center text-[var(--ft-sub)]'>
-          没有符合条件的模型。
-        </div>
-      )}
-    </div>
+      <div className='grid' data-testid='ft-model-grid'>
+        {models.map(model => (
+          <ModelCard key={model.id || model.href} model={model} today={today} />
+        ))}
+        {models.length === 0 && <div className='empty'>没有符合条件的模型。</div>}
+      </div>
+    </section>
   )
 }
 
 /**
- * 文章详情页：Notion 正文 + Freetoken 业务信息区（平台/额度/核实日期/截止提示/来源）
+ * 详情页：原设计 model/[slug]/page.jsx 逐块移植
+ * 顺序：hero（返回/eyebrow/h1/herosub/heropills）→ 模型特性 → 免费获取渠道
+ *       → 快速接入（curl + 拷贝）→ Notion 正文 → 页脚报告入口
  */
 const LayoutSlug = props => {
   const { post, lock } = props
   const router = useRouter()
   const waiting404 = siteConfig('POST_WAITING_TIME_FOR_404') * 1000
   const model = useMemo(() => adaptPost(post), [post])
+  const today = useClientToday()
+  const stale = isStale(model, today)
 
   useEffect(() => {
     if (!post) {
@@ -136,31 +121,64 @@ const LayoutSlug = props => {
 
   if (lock) {
     return (
-      <div className='ft-container pt-24 pb-24 text-center'>
-        <i className='fas fa-lock text-3xl text-[var(--ft-sub)]' />
-        <p className='mt-4 text-[var(--ft-sub)]'>该文章需输入密码后查看</p>
+      <div className='hero'>
+        <div className='missing'>该文章需输入密码后查看</div>
       </div>
     )
   }
 
   if (!post) return null
 
+  const reportHref = `${siteConfig('FREETOKEN_REPORT_URL', null, CONFIG)}${encodeURIComponent(
+    `过期报告：${model.name}`
+  )}`
+
   return (
-    <div className='ft-container pt-8 pb-24'>
-      {model.provider && <div className='ft-eyebrow'>{model.provider}</div>}
-      <h1 className='text-3xl md:text-4xl font-bold tracking-tight pt-4 md:pt-12'>
-        {siteConfig('POST_TITLE_ICON') && <NotionIcon icon={post.pageIcon} />}
-        {post.title}
-      </h1>
-      {model.desc && <p className='ft-detail-sub'>{model.desc}</p>}
+    <div className='detail'>
+      <ModelDetailHero model={model} today={today} />
 
-      <ModelFacts model={model} />
-
-      <section className='px-1 mt-10'>
-        <div id='article-wrapper'>
-          <NotionPage post={post} />
-        </div>
+      <section>
+        <h2>{siteConfig('FREETOKEN_DETAIL_FACTS_TITLE', null, CONFIG)}</h2>
+        <ModelDetailFacts model={model} />
       </section>
+
+      <div className='band'>
+        <section>
+          <h2>{siteConfig('FREETOKEN_DETAIL_OFFERS_TITLE', null, CONFIG)}</h2>
+          <div className='secsub'>
+            {siteConfig('FREETOKEN_DETAIL_OFFERS_SUB', null, CONFIG)}
+          </div>
+          <ModelOffers model={model} />
+        </section>
+      </div>
+
+      <section>
+        <h2>{siteConfig('FREETOKEN_DETAIL_CURL_TITLE', null, CONFIG)}</h2>
+        <div className='secsub'>
+          {siteConfig('FREETOKEN_DETAIL_CURL_SUB', null, CONFIG)}
+        </div>
+        <ModelCurl model={model} />
+      </section>
+
+      {post.blockMap && (
+        <section data-testid='ft-article'>
+          <h2>{siteConfig('FREETOKEN_DETAIL_ARTICLE_TITLE', null, CONFIG)}</h2>
+          <div id='article-wrapper'>
+            <NotionPage post={post} />
+          </div>
+        </section>
+      )}
+
+      <footer className='pagefoot'>
+        <div className='footin'>
+          <div>
+            信息有误或额度已变化？
+            <SmartLink href={reportHref}>报告过期</SmartLink> · 核实日期{' '}
+            {model.verifiedAt || '待核实'}
+            {stale ? '（信息可能过期，请以官网为准）' : ''}
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
@@ -170,49 +188,59 @@ const LayoutSlug = props => {
  */
 const LayoutSearch = props => {
   const { keyword } = props
+  const today = useClientToday()
+  const models = useMemo(() => adaptPosts(props.posts), [props.posts])
+
   return (
-    <div className='ft-section pb-24'>
-      <h2 className='mb-6'>
-        <i className='mr-2 fas fa-search' />
-        {keyword || '搜索'}
-      </h2>
-      <div className='max-w-xl mb-10'>
-        <SearchInput {...props} />
+    <section>
+      <div className='sechead'>
+        <h2>{keyword || '搜索'}</h2>
+        <div className='secsub'>站内搜索：模型名 / 厂商 / 模型 ID</div>
       </div>
-      <LayoutPostList {...props} />
-    </div>
+      <SearchInput {...props} />
+      <div className='grid' data-testid='ft-model-grid'>
+        {models.map(model => (
+          <ModelCard key={model.id || model.href} model={model} today={today} />
+        ))}
+        {models.length === 0 && <div className='empty'>没有符合条件的模型。</div>}
+      </div>
+    </section>
   )
 }
 
 /**
- * 归档页
+ * 归档页（原设计无对应页，沿用原设计卡片样式）
  */
 const LayoutArchive = props => {
   const { archivePosts } = props
   const { locale } = useGlobal()
+
   return (
-    <div className='ft-section pb-24'>
-      <h2 className='mb-8'>
-        <i className='mr-2 fas fa-archive' />
-        {locale.COMMON.ARCHIVE}
-      </h2>
+    <section>
+      <div className='sechead'>
+        <h2>{locale.COMMON.ARCHIVE}</h2>
+      </div>
       {archivePosts &&
         Object.keys(archivePosts).map(archiveTitle => (
-          <div key={archiveTitle} className='mb-8'>
-            <h3 className='text-lg font-semibold mb-3'>{archiveTitle}</h3>
-            <div className='space-y-2'>
+          <div key={archiveTitle}>
+            <div className='sechead'>
+              <h2>{archiveTitle}</h2>
+            </div>
+            <div className='grid'>
               {archivePosts[archiveTitle]?.map(post => (
                 <SmartLink
                   key={post.id}
                   href={post.href || '/'}
-                  className='block ft-card p-4 text-sm'>
-                  {post.title}
+                  className='mcard'>
+                  <div>
+                    <div className='mname'>{post.title}</div>
+                  </div>
                 </SmartLink>
               ))}
             </div>
           </div>
         ))}
-    </div>
+    </section>
   )
 }
 
@@ -230,11 +258,9 @@ const Layout404 = () => {
   }, [])
 
   return (
-    <div className='ft-container min-h-[60vh] flex flex-col items-center justify-center text-center'>
-      <h2 className='text-6xl font-bold text-[var(--ft-sub)]'>404</h2>
-      <p className='mt-4 text-[var(--ft-faint)]'>
-        页面不存在，3 秒后返回首页…
-      </p>
+    <div className='hero'>
+      <h1>404</h1>
+      <div className='sub'>页面不存在，3 秒后返回首页…</div>
     </div>
   )
 }
@@ -246,23 +272,21 @@ const LayoutCategoryIndex = props => {
   const { categoryOptions } = props
   const { locale } = useGlobal()
   return (
-    <div className='ft-section pb-24'>
-      <h2 className='mb-8'>
-        <i className='mr-2 fas fa-th' />
-        {locale.COMMON.CATEGORY}
-      </h2>
-      <div className='flex flex-wrap gap-3'>
+    <section>
+      <div className='sechead'>
+        <h2>{locale.COMMON.CATEGORY}</h2>
+      </div>
+      <div className='toolbar'>
         {categoryOptions?.map(category => (
           <SmartLink
             key={category.name}
             href={`/category/${category.name}`}
-            className='ft-card px-5 py-2 text-sm font-medium'>
-            <i className='mr-2 fas fa-folder' />
+            className='chip'>
             {category.name}({category.count})
           </SmartLink>
         ))}
       </div>
-    </div>
+    </section>
   )
 }
 
@@ -273,19 +297,18 @@ const LayoutTagIndex = props => {
   const { tagOptions } = props
   const { locale } = useGlobal()
   return (
-    <div className='ft-section pb-24'>
-      <h2 className='mb-8'>
-        <i className='mr-2 fas fa-tags' />
-        {locale.COMMON.TAG}
-      </h2>
-      <div className='flex flex-wrap gap-3'>
+    <section>
+      <div className='sechead'>
+        <h2>{locale.COMMON.TAG}</h2>
+      </div>
+      <div className='toolbar'>
         {tagOptions?.map(tag => (
-          <SmartLink key={tag.name} href={`/tag/${tag.name}`} className='ft-pill'>
+          <SmartLink key={tag.name} href={`/tag/${tag.name}`} className='chip'>
             #{tag.name}({tag.count})
           </SmartLink>
         ))}
       </div>
-    </div>
+    </section>
   )
 }
 

@@ -1,72 +1,49 @@
 'use client'
 
-import NotionIcon from '@/components/NotionIcon'
 import SmartLink from '@/components/SmartLink'
-import { siteConfig } from '@/lib/config'
-import { fmtCtx, isExpired, isStale } from '../lib/adaptModel'
-import StatusBadge from './StatusBadge'
+
+import { fmtCtx, isStale } from '../lib/adaptModel'
+import { staleTitle } from '../lib/modelView'
 
 /**
- * 模型卡片（首页 / 列表 / 搜索结果共用）
- * 展示：模型名、厂商、平台、能力标签、审核状态；过期或待核实弱化显示
+ * 模型卡片（原设计 .mcard 结构，首页/列表/搜索共用）
+ * 结构：mname + prov + mdesc + mtags（平台标签 + 能力标签 + 过期徽标）+ ctxrow
+ * 过期条目按原设计弱化（.mcard.stale / .stale-label），并给出同样口径的 title 提示
  */
 export default function ModelCard({ model, today }) {
   if (!model) return null
 
-  const expired = isExpired(model, today)
-  const stale = isStale(model, today)
-  const weak = expired || stale || model.verificationStatus !== 'verified'
-  const title = expired
-    ? `截止提示 ${model.expiresHint} 已过，可能已过期。请以平台官网为准`
-    : stale && model.verifiedAt
-      ? `核实于 ${model.verifiedAt}，距今超过 30 天，可能已变化。请以平台官网为准`
-      : undefined
+  const expired = isStale(model, today)
+  const title = staleTitle(model, today)
+  const platforms = Array.isArray(model.platforms) ? model.platforms.slice(0, 2) : []
 
   return (
     <SmartLink
       href={model.href || '/'}
-      title={title}
+      title={title || undefined}
       data-testid='ft-model-card'
-      className={`ft-card ft-mcard p-5 block text-left${weak ? ' is-weak' : ''}${
-        expired ? ' is-stale' : ''
-      }`}>
-      <div className='ft-mcard-head'>
-        <h3 className='font-semibold text-lg'>
-          {siteConfig('POST_TITLE_ICON') && <NotionIcon icon={model.pageIcon} />}
-          {model.name}
-        </h3>
-        <StatusBadge status={model.verificationStatus} />
+      className={'mcard' + (expired ? ' stale' : '')}>
+      <div>
+        <div className='mname'>{model.name}</div>
+        <div className='prov'>{model.provider}</div>
       </div>
-
-      {model.provider && <div className='ft-prov'>{model.provider}</div>}
-
-      {model.desc && <p className='ft-mdesc'>{model.desc}</p>}
-
-      <div className='ft-mtags'>
-        {model.platforms.slice(0, 2).map(name => (
-          <span key={name} className='ft-tag'>
+      <div className='mdesc'>{model.desc}</div>
+      <div className='mtags'>
+        {platforms.map(name => (
+          <span className='tag' key={name}>
             {name}
           </span>
         ))}
-        {model.platforms.length > 2 && (
-          <span className='ft-tag'>+{model.platforms.length - 2}</span>
-        )}
-        {model.capabilities.vision && (
-          <span className='ft-tag ft-tag-dot ft-tag-vision'>视觉</span>
-        )}
-        {model.capabilities.tools && (
-          <span className='ft-tag ft-tag-dot ft-tag-tools'>工具</span>
-        )}
-        {model.capabilities.reasoning && (
-          <span className='ft-tag ft-tag-dot ft-tag-reasoning'>推理</span>
-        )}
-        {expired && <span className='ft-tag ft-tag-stale'>可能过期</span>}
+        {expired && <span className='tag dot stale-badge'>过期</span>}
+        {model.vision && <span className='tag dot vi'>视觉</span>}
+        {model.tools && <span className='tag dot tools'>工具</span>}
+        {model.reasoning && <span className='tag dot rsn'>推理</span>}
       </div>
-
-      <div className='ft-ctxrow'>
+      <div className='ctxrow'>
         <span>上下文窗口</span>
         <b>{fmtCtx(model.context)}</b>
       </div>
+      {expired && <span className='stale-label'>可能过期</span>}
     </SmartLink>
   )
 }

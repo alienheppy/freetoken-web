@@ -7,14 +7,10 @@ import { useImperativeHandle, useRef, useState } from 'react'
 const FALLBACK_PLACEHOLDER = '搜索模型或厂商'
 
 /**
- * Freetoken 搜索输入框（主题本地实现）
+ * 站内搜索输入框（主题本地实现，契约同官方 example 主题：props = { currentTag, keyword, cRef }）
  *
- * 官方约定：主题不得跨目录引用其它主题的 UI 组件（见
- * docs/developer/THEME_MIGRATION_GUIDE.zh-CN.md 第 2、10 节），
- * 因此本组件在 themes/freetoken 内独立实现，保持与官方 example 主题
- * SearchInput 相同的对外契约：props = { currentTag, keyword, cRef }。
- *
- * 交互：回车 / 点击放大镜跳转 `/search/<关键词>`，ESC 清空，中文输入法组合态不误触发。
+ * 交互：回车 / 点击搜索跳转 `/search/<关键词>`，ESC 清空，中文输入法组合态不误触发。
+ * 样式使用移植后的原设计 class（.toolbar / .search / .chip）。
  */
 const SearchInput = ({ currentTag, keyword, cRef }) => {
   const { locale } = useGlobal()
@@ -63,9 +59,10 @@ const SearchInput = ({ currentTag, keyword, cRef }) => {
   }
 
   return (
-    <section className='ft-search w-full'>
+    <div className='toolbar' data-testid='ft-site-search'>
       <input
         ref={searchInputRef}
+        className='search'
         type='text'
         aria-label='站内搜索'
         placeholder={placeholder}
@@ -83,23 +80,19 @@ const SearchInput = ({ currentTag, keyword, cRef }) => {
           handleChange(e)
         }}
       />
-      <button
-        type='button'
-        aria-label='搜索'
-        className='ft-search-btn'
-        onClick={handleSearch}>
-        <i className='fas fa-search' />
+      <button type='button' className='chip' aria-label='搜索' onClick={handleSearch}>
+        搜索
       </button>
       {showClean && (
         <button
           type='button'
+          className='chip'
           aria-label='清空搜索'
-          className='ft-search-btn'
           onClick={cleanSearch}>
-          <i className='fas fa-times' />
+          清空
         </button>
       )}
-    </section>
+    </div>
   )
 }
 
