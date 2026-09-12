@@ -336,10 +336,12 @@ export function platformSummary(models) {
   )
 }
 
-/** 上下文窗口展示：1.5M / 128K / 512 */
+/**
+ * 上下文窗口展示：与原设计 `app/lib/shared.js` 同口径（1024 进制 → 256K / 500K / 1M / 1.5M）
+ * 仅展示格式，不参与任何解析或校验
+ */
 export function fmtCtx(n) {
   if (!n || n <= 0) return '0'
-  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
-  if (n >= 1000) return Math.round(n / 1000) + 'K'
-  return String(Math.round(n))
+  if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 ? 1 : 0) + 'M'
+  return Math.round(n / 1024) + 'K'
 }
