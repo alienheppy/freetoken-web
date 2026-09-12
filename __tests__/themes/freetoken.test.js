@@ -924,12 +924,29 @@ describe('themes/freetoken 样式作用域（不污染全局）', () => {
   })
 
   test('正文区（#article-wrapper）被排除在元素级样式之外', () => {
-    expect(styleSource).toContain('#theme-freetoken a:not(#article-wrapper a)')
-    expect(styleSource).toContain('#theme-freetoken h1:not(#article-wrapper h1)')
-    expect(styleSource).toContain('#theme-freetoken h2:not(#article-wrapper h2)')
     expect(styleSource).toContain(
-      '#theme-freetoken section:not(#article-wrapper section)'
+      '#theme-freetoken :where(a:not(#article-wrapper a))'
     )
+    expect(styleSource).toContain(':where(h1:not(#article-wrapper h1))')
+    expect(styleSource).toContain(':where(h2:not(#article-wrapper h2))')
+    expect(styleSource).toContain(
+      ':where(section:not(#article-wrapper section))'
+    )
+  })
+
+  test('回归守卫：排除选择器必须用 :where() 降权（:not 的 id 计数曾压过主题类规则致全站移位）', () => {
+    expect(styleSource).not.toContain('#theme-freetoken *:not(#article-wrapper *)')
+    expect(styleSource).toContain(':where(*:not(#article-wrapper *)')
+    // 任何未包进 :where() 的排除选择器都会重新引入特异性 bug
+    const bare =
+      /(?<!:where\()(\*|a|button|nav|section|h1|h2|footer):not\(#article-wrapper \1\)/g
+    expect(styleSource.match(bare)).toBeNull()
+    // 排除逻辑仍在：至少 18 处 :where() 包裹的 :not(#article-wrapper …)
+    const wrapped =
+      styleSource.match(
+        /:where\((\*|a|button|nav|section|h1|h2|footer):not\(#article-wrapper \1\)\)/g
+      ) || []
+    expect(wrapped.length).toBeGreaterThanOrEqual(18)
   })
 
   test('组件不再使用自创 ft-* class（data-testid 除外）', () => {
