@@ -979,6 +979,16 @@ const Style = () => (
     }
 
     /* 锁定文章页（ArticleLock）：返回链接复用 .detail .back，仅补输入区 */
+    #theme-freetoken .lockwrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 56px 22px 10px;
+    }
+
+    #theme-freetoken .lockwrap .missing {
+      padding: 30px 0 0;
+    }
+
     #theme-freetoken .lockinput {
       display: block;
       margin: 20px auto 12px;

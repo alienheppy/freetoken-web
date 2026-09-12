@@ -123,7 +123,9 @@ const LayoutSlug = props => {
   if (lock) {
     return (
       <div className='detail'>
-        <ArticleLock validPassword={validPassword} />
+        <div className='lockwrap'>
+          <ArticleLock validPassword={validPassword} />
+        </div>
       </div>
     )
   }
