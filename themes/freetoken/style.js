@@ -18,7 +18,8 @@ import { themeConsoleStyle } from '@/lib/themeConsoleStyle'
  * 另外几处“扩展”（原设计没有、主题场景必需，已在下方注释标明）：
  *   - `.dark #theme-freetoken`：深色模式变量（原设计无深色模式）；
  *   - `.navdd/.navbtn/.navmenu`：Notion customMenu 二级菜单，视觉复用原设计排序下拉；
- *   - `.notification`：官方解锁成功通知条（渲染在主题根容器外）收敛为居中小胶囊。
+ *   - `.notification`：官方解锁成功通知条（渲染在主题根容器外）收敛为居中小胶囊，
+ *     视觉对齐主题药丸（浅底 + hairline 细边框 + 深色文字）。
  */
 const Style = () => (
   <style jsx global>{`
@@ -1126,23 +1127,32 @@ const Style = () => (
       transform: translateX(-50%);
     }
 
-    /* 胶囊本体（官方内层 div：max-lg.mx-auto.bg-green-500…） */
+    /* 胶囊本体（官方内层 div：max-lg.mx-auto.bg-green-500…）
+     * 视觉对齐主题药丸（.hpill / 详情页返回按钮）：浅底 + var(--hairline) 细边框 + 深色文字；
+     * 组件在 #theme-freetoken 外取不到变量，直取同名常量 */
     .notification.notification > div {
-      /* 蓝底与主题 --blue 同源；组件在 #theme-freetoken 外取不到变量，直取常量 */
-      background: ${CONFIG.FREETOKEN_BLUE};
-      color: #fff;
+      background: ${CONFIG.FREETOKEN_CARD};
+      color: ${CONFIG.FREETOKEN_TXT};
+      border: 1px solid ${CONFIG.FREETOKEN_HAIRLINE};
       border-radius: 999px;
       padding: 10px 20px;
       font-size: 14px;
       line-height: 1.4;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     }
 
-    /* 关闭按钮随胶囊收敛（官方 ml-4/p-2 会撑高胶囊） */
+    /* 关闭按钮随胶囊收敛（官方 ml-4/p-2 会撑高胶囊；官方 text-white 在浅底上不可见 → 随文字色） */
     .notification.notification > div button {
       margin-left: 12px;
       padding: 4px;
       line-height: 1;
+      color: inherit;
+      background: transparent;
+      border-radius: 50%;
+    }
+
+    .notification.notification > div button:hover {
+      background: ${CONFIG.FREETOKEN_HAIRLINE};
     }
 
     ${themeConsoleStyle('freetoken', CONFIG, { rootId: 'theme-freetoken' })}
