@@ -983,6 +983,7 @@ const Style = () => (
       max-width: 980px;
       margin: 0 auto;
       padding: 56px 22px 10px;
+      min-height: calc(100vh - 300px);
     }
 
     #theme-freetoken .lockwrap .back {
@@ -1026,7 +1027,9 @@ const Style = () => (
     }
 
     #theme-freetoken .lockbtn {
-      display: inline-block;
+      display: block;
+      margin: 0 auto;
+      width: fit-content;
       padding: 10px 34px;
       font-size: 15px;
       font-weight: 500;
