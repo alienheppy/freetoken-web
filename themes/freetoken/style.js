@@ -15,9 +15,10 @@ import { themeConsoleStyle } from '@/lib/themeConsoleStyle'
  *      `:where()` 参数特异性恒为 0；若不用 :where，排除选择器里的 `#article-wrapper`
  *      会把特异性抬到 2 个 id，压过主题全部类规则（margin:0 auto / padding 等失效）。
  *
- * 另外两处“扩展”（原设计没有、主题场景必需，已在下方注释标明）：
+ * 另外几处“扩展”（原设计没有、主题场景必需，已在下方注释标明）：
  *   - `.dark #theme-freetoken`：深色模式变量（原设计无深色模式）；
- *   - `.navdd/.navbtn/.navmenu`：Notion customMenu 二级菜单，视觉复用原设计排序下拉。
+ *   - `.navdd/.navbtn/.navmenu`：Notion customMenu 二级菜单，视觉复用原设计排序下拉；
+ *   - `.notification`：官方解锁成功通知条（渲染在主题根容器外）收敛为居中小胶囊。
  */
 const Style = () => (
   <style jsx global>{`
@@ -1107,6 +1108,41 @@ const Style = () => (
       #theme-freetoken .detail :where(h1:not(#article-wrapper h1)) {
         font-size: 34px;
       }
+    }
+
+    /* ===== 扩展：解锁成功通知条（官方 components/Notification.js，纯 CSS 覆盖） =====
+     * 渲染位置：官方由 pages/[prefix]/index.js 渲染在 DynamicLayout 之外，即位于
+     * #theme-freetoken 根容器【外层】，主题前缀选择器命中不到 → 只能用全局特征类名
+     * 覆盖（仅样式，不动官方 DOM/类名；全站仅此组件使用 .notification 类）。
+     * 不用 :where() 降权的原因：官方工具类（w-full / left-0 / bg-green-500 …）特异性为
+     * 单类 (0,1,0)，:where 参数特异性为 0 会被反压；故用 .notification.notification
+     * 双类 (0,2,0) 稳定覆盖，作用面仍仅限该组件。
+     */
+    .notification.notification {
+      left: 50%;
+      right: auto;
+      width: fit-content;
+      max-width: calc(100vw - 32px);
+      transform: translateX(-50%);
+    }
+
+    /* 胶囊本体（官方内层 div：max-lg.mx-auto.bg-green-500…） */
+    .notification.notification > div {
+      /* 蓝底与主题 --blue 同源；组件在 #theme-freetoken 外取不到变量，直取常量 */
+      background: ${CONFIG.FREETOKEN_BLUE};
+      color: #fff;
+      border-radius: 999px;
+      padding: 10px 20px;
+      font-size: 14px;
+      line-height: 1.4;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    /* 关闭按钮随胶囊收敛（官方 ml-4/p-2 会撑高胶囊） */
+    .notification.notification > div button {
+      margin-left: 12px;
+      padding: 4px;
+      line-height: 1;
     }
 
     ${themeConsoleStyle('freetoken', CONFIG, { rootId: 'theme-freetoken' })}
