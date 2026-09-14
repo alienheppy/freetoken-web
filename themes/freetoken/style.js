@@ -985,8 +985,25 @@ const Style = () => (
       padding: 56px 22px 10px;
     }
 
+    #theme-freetoken .lockwrap .back {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--txt);
+      background: var(--bg-alt);
+      border-radius: 980px;
+      padding: 8px 18px;
+      margin-bottom: 38px;
+    }
+
     #theme-freetoken .lockwrap .missing {
-      padding: 30px 0 0;
+      text-align: center;
+      width: 100%;
+      color: var(--sub);
+      font-size: 15px;
+      padding: 24px 0 0;
     }
 
     #theme-freetoken .lockinput {
