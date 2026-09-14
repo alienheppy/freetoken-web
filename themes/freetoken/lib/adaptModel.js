@@ -202,7 +202,11 @@ export function adaptPost(post) {
     name: toNonEmptyString(post.title) || toNonEmptyString(post.name),
     provider: toNonEmptyString(ext.provider),
     platforms: toPlatformArray(ext.platforms),
-    context: toFinitePositiveNumber(ext.context),
+    // 上下文窗口优先级：Notion 主库标准字段「上下文」（getPageProperties 按表头名称输出为 post["上下文"]） > ext.context
+    context:
+      toFinitePositiveNumber(post['上下文']) ||
+      toFinitePositiveNumber(post.context) ||
+      toFinitePositiveNumber(ext.context),
     capabilities,
     // 派生别名：卡片/筛选直接消费，避免到处写 capabilities.xxx
     vision: capabilities.vision,
