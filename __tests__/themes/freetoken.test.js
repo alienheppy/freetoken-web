@@ -906,8 +906,11 @@ describe('themes/freetoken 样式作用域（不污染全局）', () => {
     'utf8'
   )
 
-  test('style.js 不出现全局 :root，所有选择器都限定在 #theme-freetoken', () => {
+  test('style.js 不出现全局 :root，所有选择器都限定在 #theme-freetoken 或白名单', () => {
     expect(styleSource).not.toMatch(/:root\s*{/)
+    // 白名单：官方组件渲染在 #theme-freetoken 根容器之外，主题无法用前缀命中，
+    // 只能用全局特征类名覆盖（须在 style.js 注释中说明原因）。
+    const GLOBAL_OVERRIDES = ['.notification.notification']
     const selectorLines = styleSource
       .split('\n')
       .map(line => line.trim())
@@ -918,7 +921,9 @@ describe('themes/freetoken 样式作用域（不污染全局）', () => {
     expect(selectorLines.length).toBeGreaterThan(30)
     for (const line of selectorLines) {
       expect(
-        line.startsWith('#theme-freetoken') || line.startsWith('.dark #theme-freetoken')
+        line.startsWith('#theme-freetoken') ||
+          line.startsWith('.dark #theme-freetoken') ||
+          GLOBAL_OVERRIDES.some(prefix => line.startsWith(prefix))
       ).toBe(true)
     }
   })
