@@ -1119,20 +1119,20 @@ const Style = () => (
      * 单类 (0,1,0)，:where 参数特异性为 0 会被反压；故用 .notification.notification
      * 双类 (0,2,0) 稳定覆盖，作用面仍仅限该组件。
      */
-    .notification.notification {
-      left: 50%;
-      right: auto;
+    #theme-freetoken .notification.notification {
+      left: 50% !important;
+      right: auto !important;
       width: fit-content;
       max-width: calc(100vw - 32px);
-      transform: translateX(-50%);
+      transform: translateX(-50%) !important;
     }
 
     /* 胶囊本体（官方内层 div：max-lg.mx-auto.bg-green-500…）
      * 视觉对齐主题药丸（.hpill / 详情页返回按钮）：浅底 + var(--hairline) 细边框 + 深色文字；
      * 组件在 #theme-freetoken 外取不到变量，直取同名常量 */
-    .notification.notification > div {
-      background: ${CONFIG.FREETOKEN_CARD};
-      color: ${CONFIG.FREETOKEN_TXT};
+    #theme-freetoken .notification.notification > div {
+      background: ${CONFIG.FREETOKEN_CARD} !important;
+      color: ${CONFIG.FREETOKEN_TXT} !important;
       border: 1px solid ${CONFIG.FREETOKEN_HAIRLINE};
       border-radius: 999px;
       padding: 10px 20px;
@@ -1142,16 +1142,16 @@ const Style = () => (
     }
 
     /* 关闭按钮随胶囊收敛（官方 ml-4/p-2 会撑高胶囊；官方 text-white 在浅底上不可见 → 随文字色） */
-    .notification.notification > div button {
+    #theme-freetoken .notification.notification > div button {
       margin-left: 12px;
       padding: 4px;
       line-height: 1;
-      color: inherit;
-      background: transparent;
+      color: ${CONFIG.FREETOKEN_TXT} !important;
+      background: transparent !important;
       border-radius: 50%;
     }
 
-    .notification.notification > div button:hover {
+    #theme-freetoken .notification.notification > div button:hover {
       background: ${CONFIG.FREETOKEN_HAIRLINE};
     }
 
