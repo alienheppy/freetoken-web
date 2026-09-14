@@ -1,48 +1,38 @@
 'use client'
 
 import SmartLink from '@/components/SmartLink'
-import { siteConfig } from '@/lib/config'
-
-import CONFIG from '../config'
-import { offerRows } from '../lib/modelView'
-import StatusBadge from './StatusBadge'
 
 /**
  * 详情页「免费获取渠道」区块（原设计 .offers / .orow）
- * 每行：平台名 + 核实徽标 + 额度说明 + 核实状态 + 前往（外链）
- * 「前往」只在模型行 ext.sourceUrl 存在时出链——不臆造平台注册网址
+ * 数据源（一期）：模型 Post 页内嵌明细表（child_database），架构师层
+ * lib/offerBlocks.collectOfferRows() 服务端解析后经 props.rows 下发。
+ * 每行：名称 + 简介 + 前往（外链）。「快速接入」curl 块一期隐藏（见 freetoken-roadmap）。
  */
-export default function ModelOffers({ model }) {
-  const rows = offerRows(model)
+export default function ModelOffers({ model, rows }) {
+  const list = Array.isArray(rows)
+    ? rows.filter(r => r && typeof r === 'object')
+    : []
 
-  if (rows.length === 0) {
+  if (list.length === 0) {
     return (
       <div className='offers' data-testid='ft-offers'>
-        <div className='empty'>
-          {siteConfig('FREETOKEN_DETAIL_EMPTY_OFFERS', null, CONFIG)}
-        </div>
+        <div className='empty'>暂无已收录的免费获取渠道。</div>
       </div>
     )
   }
 
   return (
     <div className='offers' data-testid='ft-offers'>
-      {rows.map(row => (
-        <div className='orow' key={row.name}>
-          <div className='oname'>
-            {row.name} <StatusBadge status={model.verificationStatus} />
-          </div>
-          {row.limits && <div className='olim'>{row.limits}</div>}
-          <span className={'st ' + (row.verified ? 'ok' : 'todo')}>
-            <i />
-            {row.verified && row.verifiedAt
-              ? `核实于 ${row.verifiedAt}`
-              : '待核实'}
-          </span>
+      {list.map((row, i) => (
+        <div className='orow' key={row.name + i}>
+          <div className='oname'>{row.name}</div>
+          {row.desc && <div className='olim'>{row.desc}</div>}
           {row.url ? (
             <SmartLink
               href={row.url}
               className='obtn'
+              target='_blank'
+              rel='noopener noreferrer'
               aria-label={`前往 ${row.name}`}>
               前往
             </SmartLink>

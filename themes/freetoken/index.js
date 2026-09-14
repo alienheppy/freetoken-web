@@ -11,6 +11,7 @@ import { isBrowser } from '@/lib/utils'
 
 import CONFIG from './config'
 import ArticleLock from './components/ArticleLock'
+import { collectOfferRows } from './lib/offerBlocks'
 import Hero from './components/Hero'
 import LayoutBase from './components/LayoutBase'
 import ModelCard from './components/ModelCard'
@@ -96,10 +97,17 @@ const LayoutPostList = props => {
  *       → 快速接入（curl + 拷贝）→ Notion 正文 → 页脚报告入口
  */
 const LayoutSlug = props => {
-  const { post, lock, validPassword } = props
+  const { post, lock, validPassword, offerRowsOverride } = props
   const router = useRouter()
   const waiting404 = siteConfig('POST_WAITING_TIME_FOR_404') * 1000
   const model = useMemo(() => adaptPost(post), [post])
+  const offerRowsFromPage = useMemo(
+    () =>
+      Array.isArray(offerRowsOverride)
+        ? offerRowsOverride
+        : collectOfferRows(post?.blockMap),
+    [post?.blockMap, offerRowsOverride]
+  )
   const today = useClientToday()
   const stale = isStale(model, today)
 
@@ -151,17 +159,11 @@ const LayoutSlug = props => {
           <div className='secsub'>
             {siteConfig('FREETOKEN_DETAIL_OFFERS_SUB', null, CONFIG)}
           </div>
-          <ModelOffers model={model} />
+          <ModelOffers model={model} rows={offerRowsFromPage} />
         </section>
       </div>
 
-      <section>
-        <h2>{siteConfig('FREETOKEN_DETAIL_CURL_TITLE', null, CONFIG)}</h2>
-        <div className='secsub'>
-          {siteConfig('FREETOKEN_DETAIL_CURL_SUB', null, CONFIG)}
-        </div>
-        <ModelCurl model={model} />
-      </section>
+      {/* 「快速接入」curl 块一期隐藏（freetoken-roadmap：展示方式待重新设计） */}
 
       {post.blockMap && (
         <section data-testid='ft-article'>

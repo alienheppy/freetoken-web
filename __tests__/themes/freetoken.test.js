@@ -343,7 +343,16 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       title: 'DeepSeek V3',
       summary: '性价比之选',
       href: '/deepseek-v3',
-      blockMap: { block: {} },
+      blockMap: {
+        block: {},
+        collection_view: {},
+        collection: {},
+        collection_query: {}
+      },
+      __offerRows: [
+        { name: 'DeepSeek 开放平台', url: 'https://platform.deepseek.com', desc: '注册赠送额度，用完需充值', context: 128, verified: true, verifiedAt: '', limits: '注册赠送额度，用完需充值' },
+        { name: '火山方舟', url: 'https://volcengine.com', desc: '注册赠送额度，用完需充值', context: 128, verified: true, verifiedAt: '', limits: '注册赠送额度，用完需充值' }
+      ],
       ext: {
         provider: 'DeepSeek',
         platforms: ['DeepSeek 开放平台', '火山方舟'],
@@ -355,7 +364,7 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
         sourceUrl: 'https://platform.deepseek.com'
       }
     }
-    const { container } = render(<LayoutSlug post={post} />)
+    const { container } = render(<LayoutSlug post={post} offerRowsOverride={post.__offerRows} />)
 
     // 返回模型库 + eyebrow + h1 + herosub + heropills
     const hero = screen.getByTestId('ft-detail-hero')
@@ -384,13 +393,11 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(within(featlist).getByText('深度推理')).toBeInTheDocument()
     expect(within(featlist).getByText('零成本')).toBeInTheDocument()
 
-    // 免费获取渠道：每行平台 + 核实徽标 + 额度说明 + 前往外链
+    // 免费获取渠道：数据源一期=内嵌表 rows props（此处 mock 下发），每行名称+简介+前往
     const offers = screen.getByTestId('ft-offers')
     expect(within(offers).getByText('DeepSeek 开放平台')).toBeInTheDocument()
     expect(within(offers).getByText('火山方舟')).toBeInTheDocument()
     expect(within(offers).getAllByText('注册赠送额度，用完需充值')).toHaveLength(2)
-    expect(offers.querySelectorAll('.badge.todo')).toHaveLength(2) // 每行核实徽标
-    expect(offers.querySelectorAll('.st.todo')).toHaveLength(2) // 每行状态点
     const goLinks = within(offers).getAllByText('前往')
     expect(goLinks).toHaveLength(2)
     expect(goLinks[0].closest('a')).toHaveAttribute(
@@ -399,13 +406,8 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     )
     expect(goLinks[0].closest('a')).toHaveAttribute('target', '_blank')
 
-    // 快速接入：curl 代码块 + 拷贝按钮
-    const code = screen.getByTestId('ft-curl')
-    expect(code.querySelector('code').textContent).toContain(
-      'curl https://openrouter.ai/api/v1/chat/completions'
-    )
-    expect(code.querySelector('code').textContent).toContain('"model": "d1"')
-    expect(within(code).getByRole('button', { name: '拷贝' })).toBeInTheDocument()
+    // 「快速接入」curl 块一期已隐藏（freetoken-roadmap）
+    expect(screen.queryByTestId('ft-curl')).toBeNull()
 
     // Notion 正文（官方内容维护方式保留）
     expect(screen.getByTestId('notion-page')).toBeInTheDocument()
