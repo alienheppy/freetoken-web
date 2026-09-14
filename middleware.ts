@@ -1,40 +1,24 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { checkStrIsNotionId, getLastPartOfUrl } from '@/lib/utils'
 import { idToUuid } from 'notion-utils'
 import BLOG from './blog.config'
 
 /**
- * Clerk 身份验证中间件
+ * FreeToken 站 middleware（精简版）
+ * 原版为 NotionNext 官方 Clerk 身份验证中间件：顶层 `import { clerkMiddleware }
+ * from '@clerk/nextjs/server'` 会在无 Clerk 配置的部署（Vercel Node 运行时）里
+ * 以 ESM 语法加载失败 → MIDDLEWARE_INVOCATION_FAILED 500。
+ * 本站不使用 Clerk 多租户功能，故移除顶层 Clerk import 与鉴权分支；
+ * 仅保留 UUID_REDIRECT 短链跳转功能（与 Clerk 无关）。
+ * 如未来需要 Clerk，恢复原版并配置 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY。
  */
 export const config = {
-  // 这里设置白名单，防止静态资源被拦截
+  // 白名单：静态资源与 auth 路由不进 middleware
   matcher: ['/((?!.*\\..*|_next|/sign-in|/auth).*)', '/', '/(api|trpc)(.*)']
 }
 
-// 限制登录访问的路由
-const isTenantRoute = createRouteMatcher([
-  '/user/organization-selector(.*)',
-  '/user/orgid/(.*)',
-  '/dashboard',
-  '/dashboard/(.*)'
-])
-
-// 限制权限访问的路由
-const isTenantAdminRoute = createRouteMatcher([
-  '/admin/(.*)/memberships',
-  '/admin/(.*)/domain'
-])
-
-/**
- * 没有配置权限相关功能的返回
- * @param req
- * @param ev
- * @returns
- */
-// eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-const noAuthMiddleware = async (req: NextRequest, ev: any) => {
-  // 如果没有配置 Clerk 相关环境变量，返回一个默认响应或者继续处理请求
+// eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-explicit-any
+const freetokenMiddleware = async (req: NextRequest, ev: any) => {
   if (BLOG['UUID_REDIRECT']) {
     let redirectJson: Record<string, string> = {}
     try {
@@ -60,35 +44,5 @@ const noAuthMiddleware = async (req: NextRequest, ev: any) => {
   }
   return NextResponse.next()
 }
-/**
- * 鉴权中间件
- */
-const authMiddleware = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-  ? clerkMiddleware((auth, req) => {
-      const { userId } = auth()
-      // 处理 /dashboard 路由的登录保护
-      if (isTenantRoute(req)) {
-        if (!userId) {
-          // 用户未登录，重定向到 /sign-in
-          const url = new URL('/sign-in', req.url)
-          url.searchParams.set('redirectTo', req.url) // 保存重定向目标
-          return NextResponse.redirect(url)
-        }
-      }
 
-      // 处理管理员相关权限保护
-      if (isTenantAdminRoute(req)) {
-        auth().protect(has => {
-          return (
-            has({ permission: 'org:sys_memberships:manage' }) ||
-            has({ permission: 'org:sys_domains_manage' })
-          )
-        })
-      }
-
-      // 默认继续处理请求
-      return NextResponse.next()
-    })
-  : noAuthMiddleware
-
-export default authMiddleware
+export default freetokenMiddleware
