@@ -27,9 +27,9 @@ export default function ModelDetailHero({ model, today }) {
       <h1>{model.name}</h1>
       {model.desc && <div className='herosub'>{model.desc}</div>}
       <div className='heropills'>
-        <span className='hpill dark'>免费 ¥0</span>
+        <span className='hpill dark'>{model.pricing === '付费' ? '付费' : '免费 ¥0'}</span>
         <span className='hpill'>上下文 {fmtCtx(model.context)}</span>
-        {model.vision && <span className='hpill'>视觉输入</span>}
+        <span className='hpill'>{model.inputModality}</span>
         {model.tools && <span className='hpill'>工具调用</span>}
         {model.reasoning && <span className='hpill'>深度推理</span>}
         <span className='hpill'>OpenAI 兼容</span>

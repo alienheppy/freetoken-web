@@ -33,11 +33,11 @@ export default function ModelDetailFacts({ model }) {
     <>
       <div className='facts' data-testid='ft-facts'>
         <Fact k='上下文窗口' v={fmtCtx(model.context) + ' tokens'} />
-        <Fact k='输入模态' v={model.vision ? '文本 + 图像' : '文本'} />
-        <Fact k='输出模态' v='文本' />
+        <Fact k='输入模态' v={model.inputModality} />
+        <Fact k='输出模态' v={model.outputModality} />
         <Fact k='工具调用' v={model.tools ? '支持' : '不支持'} />
         <Fact k='深度推理' v={model.reasoning ? '支持' : '—'} />
-        <Fact k='定价' v='免费' />
+        <Fact k='定价' v={model.pricing} />
       </div>
       <div className='featlist' data-testid='ft-featlist'>
         {model.context >= BIG_CONTEXT && (

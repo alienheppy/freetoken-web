@@ -100,6 +100,70 @@ function toFinitePositiveNumber(v) {
   return 0
 }
 
+/**
+ * Notion 直属属性（select / multi_select / number / text）→ 纯文本。
+ * - select/multi_select 经官方 getPageProperties 输出为数组，取首个有效项
+ * - 数字属性经官方输出为字符串
+ * - 过滤 Notion 空值哨兵 '__NO__'
+ */
+export function toPropText(v) {
+  if (Array.isArray(v)) {
+    const first = v.find(x => typeof x === 'string' && x.trim() && x !== '__NO__')
+    return first ? first.trim() : ''
+  }
+  if (typeof v === 'number' && Number.isFinite(v)) return String(v)
+  if (typeof v === 'string') {
+    const s = v.trim()
+    return s && s !== '__NO__' ? s : ''
+  }
+  return ''
+}
+
+/**
+ * checkbox 属性 → 布尔。Notion 经官方 getPageProperties 输出 'Yes' / 'No'，
+ * 兼容布尔与 'true'/'false'；其余一律 false。
+ */
+export function toCheckboxBoolean(v) {
+  if (typeof v === 'boolean') return v
+  if (Array.isArray(v)) return v.some(x => toCheckboxBoolean(x))
+  if (typeof v === 'string') {
+    const s = v.trim().toLowerCase()
+    if (s === 'yes' || s === 'true') return true
+  }
+  return false
+}
+
+/** post 上是否存在该 Notion 属性（区分“未填”与“显式空值”） */
+function hasProp(post, key) {
+  return Object.prototype.hasOwnProperty.call(post, key)
+}
+
+/** 属性值（number / 数字字符串 / 数组）→ 有限正数，其余 → 0 */
+function toPositiveNumberFromProp(v) {
+  if (Array.isArray(v)) {
+    for (const item of v) {
+      const n = toPositiveNumberFromProp(item)
+      if (n > 0) return n
+    }
+    return 0
+  }
+  return toFinitePositiveNumber(v)
+}
+
+/**
+ * 上下文窗口归一化（统一输出 tokens 数）。
+ * 语义（冻结）：主库「上下文」按 K 数理解（128 = 128K = 131072 tokens），读取时 ×1024；
+ * 兼容直接填写完整 token 数（>= 4096，如 131072 / 65536）的历史数据，按原值处理。
+ * 例：128→128K、1024→1M、2048→2M；131072→128K、65536→64K、8192→8K。
+ * 主库无值时回退 post.context / ext.context（均为 tokens 原值）。
+ */
+export function resolveContext(post, ext) {
+  const raw =
+    toPositiveNumberFromProp(post['上下文']) || toFinitePositiveNumber(post.context)
+  if (raw > 0) return raw < 4096 ? raw * 1024 : raw
+  return toFinitePositiveNumber(ext.context)
+}
+
 /** platforms：数组或逗号/顿号分隔字符串 → 去空去重数组（保持出现顺序） */
 export function toPlatformArray(v) {
   const list = Array.isArray(v)
@@ -163,6 +227,9 @@ function emptyModel() {
     vision: false,
     tools: false,
     reasoning: false,
+    inputModality: '文本',
+    outputModality: '文本',
+    pricing: '免费',
     desc: '',
     limitsNote: '',
     verifiedAt: '',
@@ -192,9 +259,23 @@ export function adaptPost(post) {
     ext.capabilities && typeof ext.capabilities === 'object' && !Array.isArray(ext.capabilities)
       ? ext.capabilities
       : {}
-  const capabilities = {}
-  for (const key of CAPABILITY_KEYS) {
-    capabilities[key] = toStrictBoolean(capsRaw[key])
+
+  // 能力来源优先级：Notion 直属属性（checkbox）> ext.capabilities（历史数据）
+  // - vision：输入模态含“图像”即视为视觉（与「输入模态」单一来源保持一致）
+  const inputModality = toPropText(post['输入模态'])
+  const outputModality = toPropText(post['输出模态'])
+  const pricing = toPropText(post['定价'])
+  // 逐项独立取值：该 Notion 属性存在则以其为准，否则回退历史 ext.capabilities
+  const capabilities = {
+    vision: hasProp(post, '输入模态')
+      ? inputModality.includes('图像')
+      : toStrictBoolean(capsRaw.vision),
+    tools: hasProp(post, '工具调用')
+      ? toCheckboxBoolean(post['工具调用'])
+      : toStrictBoolean(capsRaw.tools),
+    reasoning: hasProp(post, '深度推理')
+      ? toCheckboxBoolean(post['深度推理'])
+      : toStrictBoolean(capsRaw.reasoning)
   }
 
   const model = {
@@ -202,16 +283,17 @@ export function adaptPost(post) {
     name: toNonEmptyString(post.title) || toNonEmptyString(post.name),
     provider: toNonEmptyString(ext.provider),
     platforms: toPlatformArray(ext.platforms),
-    // 上下文窗口优先级：Notion 主库标准字段「上下文」（getPageProperties 按表头名称输出为 post["上下文"]） > ext.context
-    context:
-      toFinitePositiveNumber(post['上下文']) ||
-      toFinitePositiveNumber(post.context) ||
-      toFinitePositiveNumber(ext.context),
+    // 上下文窗口：主库「上下文」为 K 数语义（×1024 归一为 tokens）> post.context > ext.context
+    context: resolveContext(post, ext),
     capabilities,
     // 派生别名：卡片/筛选直接消费，避免到处写 capabilities.xxx
     vision: capabilities.vision,
     tools: capabilities.tools,
     reasoning: capabilities.reasoning,
+    // 模态与定价：Notion 直属属性优先，缺失时按能力推导兜底
+    inputModality: inputModality || '文本',
+    outputModality: outputModality || '文本',
+    pricing: pricing || '免费',
     desc: toNonEmptyString(post.summary),
     limitsNote: toNonEmptyString(ext.limitsNote),
     verifiedAt: isValidDateStr(ext.verifiedAt) ? ext.verifiedAt : '',

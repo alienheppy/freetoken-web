@@ -724,6 +724,63 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
     expect(list).toHaveLength(1)
     expect(adaptPosts(null)).toEqual([])
   })
+
+  test('Notion 直属属性优先驱动模型特性（输入/输出模态、工具调用、深度推理、定价）', () => {
+    const model = adaptPost(
+      makePost({
+        // 官方 getPageProperties 形状：select → 数组，checkbox → 'Yes'/'No'，number → 字符串
+        输入模态: ['文本 + 图像'],
+        输出模态: ['文本'],
+        工具调用: 'Yes',
+        深度推理: 'No',
+        定价: ['免费']
+      })
+    )
+    expect(model.vision).toBe(true)
+    expect(model.tools).toBe(true)
+    expect(model.reasoning).toBe(false)
+    expect(model.inputModality).toBe('文本 + 图像')
+    expect(model.outputModality).toBe('文本')
+    expect(model.pricing).toBe('免费')
+
+    const textOnly = adaptPost(
+      makePost({ 输入模态: ['文本'], 工具调用: 'No', 深度推理: 'Yes', 定价: ['付费'] })
+    )
+    expect(textOnly.vision).toBe(false)
+    expect(textOnly.tools).toBe(false)
+    expect(textOnly.reasoning).toBe(true)
+    expect(textOnly.pricing).toBe('付费')
+  })
+
+  test('Notion 直属属性缺失时回退历史 ext.capabilities（不破坏旧数据）', () => {
+    const model = adaptPost(
+      makePost({ ext: { capabilities: { vision: true, tools: 'true', reasoning: 'false' } } })
+    )
+    expect(model.vision).toBe(true)
+    expect(model.tools).toBe(true)
+    expect(model.reasoning).toBe(false)
+    // 未填属性时使用安全默认
+    expect(model.inputModality).toBe('文本')
+    expect(model.outputModality).toBe('文本')
+    expect(model.pricing).toBe('免费')
+  })
+
+  test('主库「上下文」按 K 语义 ×1024；完整 token 数按原值；ext.context 兜底', () => {
+    // K 语义（< 4096）
+    const k128 = adaptPost(makePost({ 上下文: 128, ext: {} }))
+    expect(k128.context).toBe(131072)
+    expect(fmtCtx(k128.context)).toBe('128K')
+    expect(adaptPost(makePost({ 上下文: '1024', ext: {} })).context).toBe(1048576)
+    // 1024K = 1048576 tokens，按 fmtCtx 既有口径显示为 1.0M
+    expect(fmtCtx(adaptPost(makePost({ 上下文: 1024, ext: {} })).context)).toBe('1.0M')
+    // 完整 token 数（>= 4096）按原值
+    expect(adaptPost(makePost({ 上下文: 131072, ext: {} })).context).toBe(131072)
+    expect(adaptPost(makePost({ 上下文: 65536, ext: {} })).context).toBe(65536)
+    expect(fmtCtx(adaptPost(makePost({ 上下文: 65536, ext: {} })).context)).toBe('64K')
+    // 主库缺失 → ext.context（tokens 原值）
+    expect(adaptPost(makePost({ ext: { context: 8192 } })).context).toBe(8192)
+    expect(adaptPost(makePost({ 上下文: 0, ext: { context: 8192 } })).context).toBe(8192)
+  })
 })
 
 describe('themes/freetoken lib/adaptModel 日期与统计', () => {
