@@ -864,71 +864,232 @@ const Style = () => (
       margin-top: 26px;
     }
 
-    #theme-freetoken .orow {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      padding: 22px 4px;
-      border-bottom: 1px solid var(--hairline);
-      flex-wrap: wrap;
+    /* 免费获取渠道：紧凑可检索清单（一行一家，详情渐进展开，支撑数十上百家） */
+    #theme-freetoken .offers {
+      margin-top: 22px;
     }
 
-    #theme-freetoken .orow .oname {
-      font-size: 17px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
+    #theme-freetoken .offersbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    #theme-freetoken .osearch {
+      flex: 1;
+      min-width: 200px;
+      font: inherit;
+      font-size: 14px;
+      color: var(--txt);
+      background: var(--card);
+      border: 1px solid var(--hairline);
+      border-radius: 980px;
+      padding: 9px 16px;
+      outline: none;
+    }
+
+    #theme-freetoken .osearch:focus {
+      border-color: var(--blue);
+    }
+
+    #theme-freetoken .osorts {
+      display: inline-flex;
+      gap: 6px;
+    }
+
+    #theme-freetoken .osort {
+      font: inherit;
+      font-size: 13px;
+      color: var(--sub);
+      background: var(--bg-alt);
+      border: none;
+      border-radius: 980px;
+      padding: 7px 14px;
+      cursor: pointer;
+    }
+
+    #theme-freetoken .osort.on {
+      background: var(--txt);
+      color: var(--bg);
+    }
+
+    #theme-freetoken .ocount {
+      font-size: 13px;
+      color: var(--faint);
+      white-space: nowrap;
+    }
+
+    #theme-freetoken .olist {
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--card);
+    }
+
+    #theme-freetoken .oitem + .oitem {
+      border-top: 1px solid var(--hairline);
+    }
+
+    #theme-freetoken .orow {
+      display: grid;
+      grid-template-columns: minmax(0, 2.2fr) 90px minmax(0, 1.6fr) auto;
+      align-items: center;
+      gap: 16px;
+      padding: 15px 20px;
+    }
+
+    #theme-freetoken .ocell {
+      min-width: 0;
+    }
+
+    #theme-freetoken .otop {
       display: flex;
       align-items: center;
       gap: 9px;
+      flex-wrap: wrap;
     }
 
-    #theme-freetoken .orow .olim {
-      font-size: 13px;
-      color: var(--sub);
-      flex: 1;
-      min-width: 200px;
+    #theme-freetoken .oname {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
     }
 
-    #theme-freetoken .st {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+    #theme-freetoken .oquota {
       font-size: 12px;
-      color: var(--sub);
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 980px;
+      background: rgba(52, 199, 89, 0.14);
+      color: var(--green);
       white-space: nowrap;
     }
 
-    #theme-freetoken .st i {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      display: inline-block;
+    #theme-freetoken .odesc {
+      font-size: 13px;
+      color: var(--sub);
+      margin-top: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    #theme-freetoken .st.ok i {
-      background: var(--green);
+    #theme-freetoken .olabel {
+      display: block;
+      font-size: 11px;
+      color: var(--faint);
     }
 
-    #theme-freetoken .st.todo i {
-      background: #c7c7cc;
+    #theme-freetoken .oval {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-top: 2px;
     }
 
-    #theme-freetoken .st.down i {
-      background: #ff9f0a;
+    #theme-freetoken .oval.mono {
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #theme-freetoken .oact {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 14px;
+      white-space: nowrap;
+    }
+
+    #theme-freetoken .otoggle {
+      font: inherit;
+      font-size: 13px;
+      color: var(--sub);
+      background: var(--bg-alt);
+      border: none;
+      border-radius: 980px;
+      padding: 6px 14px;
+      cursor: pointer;
+    }
+
+    #theme-freetoken .otoggle:hover {
+      color: var(--txt);
     }
 
     #theme-freetoken .obtn {
+      display: inline-flex;
+      align-items: center;
       font-size: 13px;
+      font-weight: 500;
       color: var(--blue);
+      background: rgba(0, 113, 227, 0.12);
+      border: 1px solid rgba(0, 113, 227, 0.22);
+      border-radius: 980px;
+      padding: 6px 15px;
       white-space: nowrap;
+      transition: 0.2s;
     }
 
     #theme-freetoken .obtn:hover {
-      text-decoration: underline;
+      background: rgba(0, 113, 227, 0.2);
+      border-color: rgba(0, 113, 227, 0.34);
+      text-decoration: none;
     }
 
     #theme-freetoken .obtn::after {
       content: " ↗";
+    }
+
+    /* 深色模式：换用更亮的蓝，避免 #0071e3 在深底上发闷 */
+    .dark #theme-freetoken .obtn {
+      color: #4da3ff;
+      background: rgba(77, 163, 255, 0.16);
+      border-color: rgba(77, 163, 255, 0.3);
+    }
+
+    .dark #theme-freetoken .obtn:hover {
+      background: rgba(77, 163, 255, 0.24);
+      border-color: rgba(77, 163, 255, 0.42);
+    }
+
+    #theme-freetoken .opanel {
+      padding: 0 20px 20px;
+    }
+
+    #theme-freetoken .oguide .k {
+      font-size: 12px;
+      color: var(--faint);
+    }
+
+    #theme-freetoken .oguide .t {
+      font-size: 14px;
+      line-height: 1.7;
+      margin-top: 4px;
+      white-space: pre-line;
+    }
+
+    #theme-freetoken .opanel-code {
+      margin-top: 14px;
+    }
+
+    @media (max-width: 760px) {
+      #theme-freetoken .orow {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      #theme-freetoken .oact {
+        justify-content: flex-start;
+      }
+
+      #theme-freetoken .oval.mono {
+        white-space: normal;
+        word-break: break-all;
+      }
     }
 
     #theme-freetoken .code {

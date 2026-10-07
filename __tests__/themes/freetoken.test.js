@@ -80,6 +80,11 @@ import {
   providerOptions,
   staleTitle
 } from '@/themes/freetoken/lib/modelView'
+import {
+  collectOfferRows,
+  hasRenderableBody,
+  stripEmbeddedTables
+} from '@/themes/freetoken/lib/offerBlocks'
 
 /** 首页/列表用的已发布模型（含真实 ext 字段） */
 const mockPosts = [
@@ -344,7 +349,11 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       summary: '性价比之选',
       href: '/deepseek-v3',
       blockMap: {
-        block: {},
+        // 正文含一段模型级叙述（渲染）；内嵌表由 offerRowsOverride 模拟，正文不重复
+        block: {
+          'p1': { value: { value: { id: 'p1', type: 'page', content: ['t1'] } } },
+          't1': { value: { value: { id: 't1', type: 'text', properties: { title: [['接入说明见渠道卡']] } } } }
+        },
         collection_view: {},
         collection: {},
         collection_query: {}
@@ -393,12 +402,13 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(within(featlist).getByText('深度推理')).toBeInTheDocument()
     expect(within(featlist).getByText('零成本')).toBeInTheDocument()
 
-    // 免费获取渠道：数据源一期=内嵌表 rows props（此处 mock 下发），每行名称+简介+前往
+    // 免费获取渠道：渠道卡（每行名称 + 前往官网；base_url/额度等各自承载）
     const offers = screen.getByTestId('ft-offers')
     expect(within(offers).getByText('DeepSeek 开放平台')).toBeInTheDocument()
     expect(within(offers).getByText('火山方舟')).toBeInTheDocument()
     expect(within(offers).getAllByText('注册赠送额度，用完需充值')).toHaveLength(2)
-    const goLinks = within(offers).getAllByText('前往')
+    expect(screen.getAllByTestId('ft-offer-card')).toHaveLength(2)
+    const goLinks = within(offers).getAllByText('前往官网')
     expect(goLinks).toHaveLength(2)
     expect(goLinks[0].closest('a')).toHaveAttribute(
       'href',
@@ -955,6 +965,120 @@ describe('themes/freetoken lib/modelView 视图层工具', () => {
     expect(rows[0].verified).toBe(true)
     expect(rows[0].url).toBe('https://openrouter.ai')
     expect(offerRows(null)).toEqual([])
+  })
+})
+
+describe('themes/freetoken lib/offerBlocks 渠道解析与正文剔除', () => {
+  // 内嵌明细表：collection_view 块 d002… 指向子表 d4e2…，两行 Kiraai / Pkay
+  const makeBlockMap = () => ({
+    block: {
+      'd002-1': { value: { value: { id: 'd002-1', type: 'collection_view', collection_id: 'd4e2', parent_id: 'page-1', parent_table: 'block' } } },
+      'page-1': { value: { value: { id: 'page-1', type: 'page', content: ['d002-1', 'txt-1'] } } },
+      'txt-1': { value: { value: { id: 'txt-1', type: 'text', properties: { title: [['操作步骤']] } } } },
+      // 行 properties 以 schema key（短 id）为键，与 Notion 实际数据形状一致
+      'row-k': { value: { value: { id: 'row-k', type: 'page', parent_id: 'd4e2', parent_table: 'collection', properties: { a: [['Kiraai']], b: [['https://kiraai.vn', [['a', 'https://kiraai.vn']]]], c: [['很好']], d: [['128']], e: [['https://kiraai.vn/api/v1']], f: [['1. 注册\\n2. 建 Key']], g: [['1.5 亿代币']] } } } },
+      'row-p': { value: { value: { id: 'row-p', type: 'page', parent_id: 'd4e2', parent_table: 'collection', properties: { a: [['Pkay']], b: [['https://pkay.fun', [['a', 'https://pkay.fun']]]], c: [['很棒']], d: [['12000']], e: [['https://api.pkay.fun/v1']], f: [['看官网']], g: [['25 亿令牌']] } } } }
+    },
+    collection: {
+      d4e2: { value: { value: { id: 'd4e2', schema: { 'a': { name: '名称', type: 'title' }, 'b': { name: '网址', type: 'url' }, 'c': { name: '供应商简介', type: 'text' }, 'd': { name: 'contextK', type: 'number' }, 'e': { name: 'baseUrl', type: 'text' }, 'f': { name: '接入说明', type: 'text' }, 'g': { name: '免费额度', type: 'text' } } } } },
+      main: { value: { value: { id: 'main', schema: { 's': { name: 'status' }, 'su': { name: 'summary' } } } } }
+    },
+    collection_view: {
+      v1: { value: { value: { id: 'v1', format: { collection_pointer: { id: 'd4e2' } }, page_sort: ['row-k', 'row-p'] } } }
+    },
+    collection_query: {}
+  })
+
+  test('解析渠道行：名称/网址/简介/K语义上下文/baseUrl/接入说明/免费额度', () => {
+    const rows = collectOfferRows(makeBlockMap())
+    expect(rows.map(r => r.name)).toEqual(['Kiraai', 'Pkay'])
+    expect(rows[0].url).toBe('https://kiraai.vn')
+    expect(rows[0].baseUrl).toBe('https://kiraai.vn/api/v1')
+    expect(rows[0].quota).toBe('1.5 亿代币')
+    expect(rows[0].guide).toContain('建 Key')
+    // 128 → 128K（×1024）；12000 ≥ 4096 视为原始 tokens
+    expect(rows[0].context).toBe(128 * 1024)
+    expect(rows[1].context).toBe(12000)
+    expect(collectOfferRows(null)).toEqual([])
+    expect(collectOfferRows({ block: {} })).toEqual([])
+  })
+
+  test('stripEmbeddedTables：剔除内嵌表块及其 page.content 引用，保留正文文字块', () => {
+    const bm = makeBlockMap()
+    const stripped = stripEmbeddedTables(bm)
+    expect(stripped.block['d002-1']).toBeUndefined()
+    expect(stripped.block['page-1'].value.value.content).toEqual(['txt-1'])
+    expect(stripped.block['txt-1']).toBeTruthy()
+    // 不修改入参（不可变）
+    expect(bm.block['d002-1']).toBeTruthy()
+    expect(bm.block['page-1'].value.value.content).toEqual(['d002-1', 'txt-1'])
+    // 无内嵌表时原样返回
+    const plain = { block: { a: { value: { value: { id: 'a', type: 'text' } } } } }
+    expect(stripEmbeddedTables(plain)).toBe(plain)
+    expect(stripEmbeddedTables(null)).toBeNull()
+  })
+
+  test('hasRenderableBody：只剩内嵌表 → false；有正文文字/媒体块 → true', () => {
+    // 该 blockMap 除内嵌表与 page 外无其他块 → 正文无可渲染内容
+    const onlyTable = {
+      block: {
+        'p1': { value: { value: { id: 'p1', type: 'page', content: ['d002-1'] } } },
+        'd002-1': { value: { value: { id: 'd002-1', type: 'collection_view', collection_id: 'd4e2' } } }
+      }
+    }
+    expect(hasRenderableBody(onlyTable)).toBe(false)
+    expect(hasRenderableBody(makeBlockMap())).toBe(true)
+    expect(hasRenderableBody(null)).toBe(false)
+    expect(hasRenderableBody({})).toBe(false)
+  })
+})
+
+describe('themes/freetoken 免费获取渠道清单（可检索 + 渐进展开）', () => {
+  const rows = [
+    { name: 'Kiraai', url: 'https://kiraai.vn', desc: '很好', context: 128 * 1024, baseUrl: 'https://kiraai.vn/api/v1', guide: '1. 注册\n2. 建 Key', quota: '1.5 亿代币' },
+    { name: 'Pkay', url: 'https://pkay.fun', desc: '很棒', context: 12000, baseUrl: 'https://api.pkay.fun/v1', guide: '看官网', quota: '25 亿令牌' },
+    { name: 'ZeroAI', url: 'https://zero.ai', desc: '一般', context: 0, baseUrl: '', guide: '', quota: '' }
+  ]
+  const renderOffers = rs =>
+    render(
+      <LayoutSlug
+        post={{ id: 'd-offers', title: 'Offer Model', href: '/offer-model', ext: {} }}
+        offerRowsOverride={rs}
+      />
+    )
+  const nameList = () =>
+    screen.queryAllByTestId('ft-offer-card').map(el => el.querySelector('.oname')?.textContent)
+
+  test('紧凑清单：一行一家；详情（curl）默认不渲染，点「接入方式」才展开', () => {
+    renderOffers(rows)
+    expect(screen.getAllByTestId('ft-offer-card')).toHaveLength(3)
+    expect(nameList()).toEqual(['Kiraai', 'Pkay', 'ZeroAI'])
+    // 默认折叠：无 curl 代码块
+    expect(screen.queryByText(/chat\/completions/)).toBeNull()
+    // 展开第一家
+    fireEvent.click(screen.getAllByText('接入方式')[0])
+    expect(screen.getByText(/chat\/completions/)).toBeInTheDocument()
+    expect(screen.getAllByText(/kiraai\.vn\/api\/v1/).length).toBeGreaterThan(0)
+  })
+
+  test('搜索过滤 + 排序（上下文最大 / A→Z）', () => {
+    renderOffers(rows)
+    // 搜索 pkay
+    fireEvent.change(screen.getByLabelText('搜索免费获取渠道'), { target: { value: 'pkay' } })
+    expect(nameList()).toEqual(['Pkay'])
+    fireEvent.change(screen.getByLabelText('搜索免费获取渠道'), { target: { value: '' } })
+    // 上下文最大：128K(131072) > 12000 > 0
+    fireEvent.click(screen.getByRole('button', { name: '上下文最大' }))
+    expect(nameList()).toEqual(['Kiraai', 'Pkay', 'ZeroAI'])
+    // A→Z
+    fireEvent.click(screen.getByRole('button', { name: 'A → Z' }))
+    expect(nameList()).toEqual(['Kiraai', 'Pkay', 'ZeroAI'])
+  })
+
+  test('仅一家时不渲染工具条', () => {
+    renderOffers([rows[0]])
+    expect(screen.queryByLabelText('搜索免费获取渠道')).toBeNull()
+    expect(screen.getAllByTestId('ft-offer-card')).toHaveLength(1)
   })
 })
 

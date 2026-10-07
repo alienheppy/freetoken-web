@@ -11,11 +11,14 @@ import { isBrowser } from '@/lib/utils'
 
 import CONFIG from './config'
 import ArticleLock from './components/ArticleLock'
-import { collectOfferRows } from './lib/offerBlocks'
+import {
+  collectOfferRows,
+  hasRenderableBody,
+  stripEmbeddedTables
+} from './lib/offerBlocks'
 import Hero from './components/Hero'
 import LayoutBase from './components/LayoutBase'
 import ModelCard from './components/ModelCard'
-import ModelCurl from './components/ModelCurl'
 import ModelDetailFacts from './components/ModelDetailFacts'
 import ModelDetailHero from './components/ModelDetailHero'
 import ModelOffers from './components/ModelOffers'
@@ -108,6 +111,19 @@ const LayoutSlug = props => {
         : collectOfferRows(post?.blockMap),
     [post?.blockMap, offerRowsOverride]
   )
+  // 「详细说明」只渲染模型级叙述：剔除内嵌明细表（其内容已由「免费获取渠道」渠道卡承载，避免重复）
+  const articlePost = useMemo(
+    () =>
+      post?.blockMap
+        ? { ...post, blockMap: stripEmbeddedTables(post.blockMap) }
+        : post,
+    [post]
+  )
+  // 正文若只剩内嵌表（无模型级叙述），不显示只有标题的空板块
+  const showArticle = useMemo(
+    () => Boolean(post?.blockMap) && hasRenderableBody(articlePost?.blockMap),
+    [post?.blockMap, articlePost]
+  )
   const today = useClientToday()
   const stale = isStale(model, today)
 
@@ -163,13 +179,13 @@ const LayoutSlug = props => {
         </section>
       </div>
 
-      {/* 「快速接入」curl 块一期隐藏（freetoken-roadmap：展示方式待重新设计） */}
+      {/* 「快速接入」curl 已下移为每个渠道卡内的 base_url + 示例（各提供商 base_url 不同） */}
 
-      {post.blockMap && (
+      {showArticle && (
         <section data-testid='ft-article'>
           <h2>{siteConfig('FREETOKEN_DETAIL_ARTICLE_TITLE', null, CONFIG)}</h2>
           <div id='article-wrapper'>
-            <NotionPage post={post} />
+            <NotionPage post={articlePost} />
           </div>
         </section>
       )}
