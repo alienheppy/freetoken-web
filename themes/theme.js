@@ -219,26 +219,53 @@ export const DynamicLayout = props => {
  * @param {*} theme
  * @returns
  */
-export const useLayoutByTheme = ({ layoutName, theme }) => {
-  const router = useRouter()
-  const themeQuery = getCurrentTheme(router, theme)
-  const cacheKey = `${themeQuery}:${layoutName}`
-
+const createLayoutComponent = (themeName, layoutName) => {
+  const cacheKey = `${themeName}:${layoutName}`
   if (layoutByThemeCache.has(cacheKey)) {
-    scheduleFixThemeDOM(themeQuery === BLOG.THEME ? 80 : 240)
     return layoutByThemeCache.get(cacheKey)
   }
-
   const loadLayout = () =>
-    resolveThemeLayout(themeQuery, layoutName, EmptyPageLayout)
+    resolveThemeLayout(themeName, layoutName, EmptyPageLayout)
   const DynamicLayoutComponent = dynamic(loadLayout, {
     ssr: true,
     loading: getLayoutLoading(layoutName)
   })
   layoutByThemeCache.set(cacheKey, DynamicLayoutComponent)
+  return DynamicLayoutComponent
+}
+
+export const useLayoutByTheme = ({ layoutName, theme }) => {
+  const router = useRouter()
+  const themeQuery = getCurrentTheme(router, theme)
+  const DynamicLayoutComponent = createLayoutComponent(themeQuery, layoutName)
   scheduleFixThemeDOM(themeQuery === BLOG.THEME ? 80 : 240)
   return DynamicLayoutComponent
 }
+
+/**
+ * 首屏骨架修复：预热默认主题的布局动态组件。
+ *
+ * 背景（刷新首屏灰块闪烁）：主题布局经 next/dynamic 懒加载，dynamic() 在「渲染那一刻」
+ * 才被调用并注册到 react-loadable 的 ALL_INITIALIZERS；而 Next 服务端在 renderToHTML 之前
+ * 就执行了 `Loadable.preloadAll()`（next/dist/server/render.js）。因此某个 路由/布局 的
+ * 首次 SSR 渲染时，动态 chunk 尚未 resolve，`loading` 兜底（官方灰块骨架）被烘焙进首字节，
+ * 客户端接管后才替换为真实内容 —— 表现为「刷新先看到一堆灰块」。首个请求之后组件已就绪，
+ * 所以本地/预热实例不易复现，而线上 ISR 再生 / 冷启动会偶发命中。
+ *
+ * 修复：在模块加载期（早于 preloadAll）就为默认主题注册全部布局的动态组件，
+ * 使 preloadAll 能覆盖到它们；SSR 渲染时 state 已 loaded，直接输出真实内容，不再渲染骨架。
+ * 仅预热站点默认主题（BLOG.THEME），`?theme=` 等运行期切换的主题不在此列，保持原有兜底。
+ */
+;(function warmDefaultThemeLayouts() {
+  const defaultTheme = normalizeThemeName(BLOG.THEME)
+  const layoutNames = new Set(Object.values(LAYOUT_MAPPINGS || {}))
+  layoutNames.add('LayoutSlug')
+  layoutNames.forEach(layoutName => {
+    createLayoutComponent(defaultTheme, layoutName)
+  })
+  // 基础布局走独立缓存（getBaseLayoutByTheme），单独预热
+  getBaseLayoutByTheme(defaultTheme)
+})()
 
 /**
  * 根据路径 获取对应的layout名称
