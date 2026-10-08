@@ -81,8 +81,10 @@ import {
   staleTitle
 } from '@/themes/freetoken/lib/modelView'
 import {
+  applyPlatformProfiles,
   collectOfferRows,
   hasRenderableBody,
+  normalizePlatformProfiles,
   stripEmbeddedTables
 } from '@/themes/freetoken/lib/offerBlocks'
 
@@ -951,6 +953,22 @@ describe('themes/freetoken lib/modelView 视图层工具', () => {
     expect(staleTitle({ verifiedAt: '2026-09-09' }, '2026-09-10')).toBe('')
   })
 
+  test('platformCards 合并平台档案：补简介/网址，且无模型的平台也展示', () => {
+    const cards = platformCards(models, [
+      { name: 'OpenRouter', desc: '聚合平台', url: 'https://openrouter.ai' },
+      { name: 'ZeroAI', desc: '尚无模型收录', url: 'https://zero.ai' }
+    ])
+    const or = cards.find(c => c.name === 'OpenRouter')
+    expect(or.limits).toBe('聚合平台')
+    expect(or.url).toBe('https://openrouter.ai')
+    expect(or.count).toBe(2)
+    const zero = cards.find(c => c.name === 'ZeroAI')
+    expect(zero.count).toBe(0)
+    expect(zero.verified).toBe(false)
+    // 未传 profiles 时与旧版行为一致
+    expect(platformCards(models).every(c => c.url === '')).toBe(true)
+  })
+
   test('buildCurl / offerRows 输出原设计结构', () => {
     const code = buildCurl({ id: 'nex-agi/nex-n2.5-mini:free' }, 'https://openrouter.ai/api/v1/')
     expect(code.split('\n')[0]).toBe(
@@ -1030,6 +1048,88 @@ describe('themes/freetoken lib/offerBlocks 渠道解析与正文剔除', () => {
     expect(hasRenderableBody(makeBlockMap())).toBe(true)
     expect(hasRenderableBody(null)).toBe(false)
     expect(hasRenderableBody({})).toBe(false)
+  })
+})
+
+describe('themes/freetoken 方案A：平台档案 join（平台/模型解耦）', () => {
+  const profilesRaw = [
+    {
+      title: 'Kiraai',
+      网址: 'https://kiraai.vn',
+      baseUrl: 'https://kiraai.vn/api/v1',
+      供应商简介: '新账户送额度',
+      免费额度: '新账户 1.5 亿免费代币',
+      接入说明: '1. 注册 2. 建 Key',
+      上下文: 128
+    },
+    {
+      title: 'Pkay',
+      网址: 'https://pkay.fun',
+      baseUrl: 'https://api.pkay.fun/v1',
+      供应商简介: '很棒的聚合',
+      免费额度: '免费 25 亿令牌',
+      接入说明: '看官网',
+      上下文: 12000
+    }
+  ]
+
+  test('normalizePlatformProfiles：兼容主库原始行，归一化 + 非法值丢弃', () => {
+    const list = normalizePlatformProfiles(profilesRaw)
+    expect(list.map(p => p.name)).toEqual(['Kiraai', 'Pkay'])
+    expect(list[0].baseUrl).toBe('https://kiraai.vn/api/v1')
+    expect(list[0].quota).toBe('新账户 1.5 亿免费代币')
+    // 128 → 128K（与渠道行同口径）
+    expect(list[0].context).toBe(128 * 1024)
+    expect(list[1].context).toBe(12000)
+    expect(normalizePlatformProfiles(null)).toEqual([])
+    // 无名称的行被丢弃
+    expect(normalizePlatformProfiles([{ 网址: 'https://x.y' }])).toEqual([])
+  })
+
+  test('applyPlatformProfiles：行只写平台名时回填平台级字段', () => {
+    const rows = [{ name: 'Kiraai', url: '', desc: '', baseUrl: '', quota: '', guide: '', context: 0 }]
+    const merged = applyPlatformProfiles(rows, profilesRaw)
+    expect(merged).toHaveLength(1)
+    expect(merged[0].baseUrl).toBe('https://kiraai.vn/api/v1')
+    expect(merged[0].url).toBe('https://kiraai.vn')
+    expect(merged[0].quota).toBe('新账户 1.5 亿免费代币')
+    expect(merged[0].context).toBe(128 * 1024)
+    expect(merged[0].platformProfile.name).toBe('Kiraai')
+    // 不修改入参
+    expect(rows[0].baseUrl).toBe('')
+  })
+
+  test('applyPlatformProfiles：行级值优先（老数据重复写平台字段时行为不变）', () => {
+    const rows = [
+      {
+        name: 'Kiraai',
+        url: 'https://kiraai.vn/custom',
+        desc: '行级简介',
+        baseUrl: 'https://kiraai.vn/custom/v1',
+        quota: '行级额度',
+        guide: '行级步骤',
+        context: 65536
+      }
+    ]
+    const merged = applyPlatformProfiles(rows, profilesRaw)
+    expect(merged[0].url).toBe('https://kiraai.vn/custom')
+    expect(merged[0].baseUrl).toBe('https://kiraai.vn/custom/v1')
+    expect(merged[0].desc).toBe('行级简介')
+    expect(merged[0].quota).toBe('行级额度')
+    expect(merged[0].guide).toBe('行级步骤')
+    expect(merged[0].context).toBe(65536)
+  })
+
+  test('applyPlatformProfiles：平台名大小写/空白不敏感；无档案时原样返回', () => {
+    const merged = applyPlatformProfiles(
+      [{ name: '  kiraai ', baseUrl: '', url: '', desc: '', quota: '', guide: '', context: 0 }],
+      profilesRaw
+    )
+    expect(merged[0].baseUrl).toBe('https://kiraai.vn/api/v1')
+    // 无档案 → 不崩溃，字段保持原值
+    const plain = applyPlatformProfiles([{ name: 'Unknown', baseUrl: '' }], null)
+    expect(plain[0].baseUrl).toBe('')
+    expect(applyPlatformProfiles(null, profilesRaw)).toEqual([])
   })
 })
 

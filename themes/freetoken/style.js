@@ -643,6 +643,31 @@ const Style = () => (
       margin-top: 12px;
     }
 
+    #theme-freetoken .plimk {
+      margin-top: 10px;
+    }
+
+    #theme-freetoken .plimk a {
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--blue);
+      border-radius: 980px;
+      padding: 3px 10px;
+      background: rgba(10, 132, 255, 0.1);
+      transition: background 0.15s ease;
+    }
+
+    #theme-freetoken .plimk a:hover {
+      background: rgba(10, 132, 255, 0.18);
+    }
+
+    .dark #theme-freetoken .plimk a {
+      background: rgba(10, 132, 255, 0.22);
+      color: #6cb2ff;
+    }
+
     #theme-freetoken .pcount {
       font-size: 12px;
       font-weight: 600;

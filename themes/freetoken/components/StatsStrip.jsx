@@ -10,17 +10,17 @@ import { maxContext, platformCards } from '../lib/modelView'
  * 四项与原设计一一对应：免费模型·已收录 / 平台收录 / 最大上下文窗口 / 使用成本 ¥0
  * 数值全部来自已发布模型行的 ext 数据，无硬编码占位
  */
-export default function StatsStrip({ models }) {
+export default function StatsStrip({ models, platformProfiles }) {
   const stats = useMemo(() => {
     const list = Array.isArray(models)
       ? models.filter(m => m && typeof m === 'object')
       : []
     return {
       modelCount: list.length,
-      platformCount: platformCards(list).length,
+      platformCount: platformCards(list, platformProfiles).length,
       maxCtx: fmtCtx(maxContext(list))
     }
-  }, [models])
+  }, [models, platformProfiles])
 
   return (
     <div className='strip' data-testid='ft-stats'>

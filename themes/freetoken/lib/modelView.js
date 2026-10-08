@@ -110,10 +110,16 @@ export function filterAndSortModels(models, options = {}) {
 /**
  * 平台卡片数据（由模型行 ext.platforms 派生）
  * 只输出可核实的字段：收录数、已核实模型数、最近核实日期、免费限制说明（取自模型行 limitsNote）
+ *
+ * 方案A：可选传入「平台档案」（type=Platform 行）——
+ * 平台档案提供名称/简介/网址；收录数仍由模型行的 ext.platforms 统计。
+ * 未传 profiles 时行为与旧版完全一致（纯模型派生）。
+ * @param {Array} models adaptPosts 输出
+ * @param {Array} [profiles] 平台档案（normalizePlatformProfiles 输出或主库原始行）
  * @returns {Array<{name: string, count: number, verifiedCount: number, verified: boolean,
- *                  verifiedAt: string, limits: string}>}
+ *                  verifiedAt: string, limits: string, url: string}>}
  */
-export function platformCards(models) {
+export function platformCards(models, profiles) {
   const map = new Map()
   for (const m of asList(models)) {
     const platforms = Array.isArray(m.platforms) ? m.platforms : []
@@ -122,7 +128,7 @@ export function platformCards(models) {
       if (!name) continue
       const card =
         map.get(name) ||
-        { name, count: 0, verifiedCount: 0, verifiedAt: '', limits: '' }
+        { name, count: 0, verifiedCount: 0, verifiedAt: '', limits: '', url: '' }
       card.count += 1
       if (m.verificationStatus === 'verified') {
         card.verifiedCount += 1
@@ -136,8 +142,37 @@ export function platformCards(models) {
       map.set(name, card)
     }
   }
+  // 合并平台档案：补名称/简介/网址；无模型的平台档案也展示（count 0）
+  const profileList = Array.isArray(profiles) ? profiles : []
+  for (const p of profileList) {
+    if (!p || typeof p !== 'object') continue
+    const name = String(p.name || p.title || '').trim()
+    if (!name) continue
+    const card =
+      map.get(name) ||
+      { name, count: 0, verifiedCount: 0, verifiedAt: '', limits: '', url: '' }
+    const desc =
+      typeof p.desc === 'string' && p.desc.trim()
+        ? p.desc.trim()
+        : typeof p['供应商简介'] === 'string'
+          ? p['供应商简介'].trim()
+          : ''
+    const url =
+      typeof p.url === 'string' && /^https?:\/\//i.test(p.url.trim())
+        ? p.url.trim()
+        : typeof p['网址'] === 'string' && /^https?:\/\//i.test(p['网址'].trim())
+          ? p['网址'].trim()
+          : ''
+    if (!card.limits && desc) card.limits = desc
+    if (!card.url && url) card.url = url
+    map.set(name, card)
+  }
   return Array.from(map.values())
-    .map(card => ({ ...card, verified: card.count > 0 && card.verifiedCount === card.count }))
+    .map(card => ({
+      ...card,
+      verified:
+        card.count > 0 && card.verifiedCount === card.count
+    }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'en'))
 }
 

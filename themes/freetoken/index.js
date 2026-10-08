@@ -12,6 +12,7 @@ import { isBrowser } from '@/lib/utils'
 import CONFIG from './config'
 import ArticleLock from './components/ArticleLock'
 import {
+  applyPlatformProfiles,
   collectOfferRows,
   hasRenderableBody,
   stripEmbeddedTables
@@ -34,14 +35,14 @@ import { useClientToday } from './lib/useClientToday'
  * 数据：官方 SiteDataApi 注入的 posts（已发布），业务字段来自 ext（adaptPosts 只适配一次）
  */
 const LayoutIndex = props => {
-  const { posts } = props
+  const { posts, platformProfiles } = props
   const models = useMemo(() => adaptPosts(posts), [posts])
   const today = useClientToday()
 
   return (
     <>
       <Hero />
-      <StatsStrip models={models} />
+      <StatsStrip models={models} platformProfiles={platformProfiles} />
 
       <section id='models'>
         <div className='sechead'>
@@ -63,7 +64,7 @@ const LayoutIndex = props => {
             {siteConfig('FREETOKEN_PLATFORMS_SUB', null, CONFIG)}
           </div>
         </div>
-        <PlatformGrid models={models} />
+        <PlatformGrid models={models} platformProfiles={platformProfiles} />
       </section>
     </>
   )
@@ -100,16 +101,19 @@ const LayoutPostList = props => {
  *       → 快速接入（curl + 拷贝）→ Notion 正文 → 页脚报告入口
  */
 const LayoutSlug = props => {
-  const { post, lock, validPassword, offerRowsOverride } = props
+  const { post, lock, validPassword, offerRowsOverride, platformProfiles } = props
   const router = useRouter()
   const waiting404 = siteConfig('POST_WAITING_TIME_FOR_404') * 1000
   const model = useMemo(() => adaptPost(post), [post])
   const offerRowsFromPage = useMemo(
-    () =>
-      Array.isArray(offerRowsOverride)
+    () => {
+      const rows = Array.isArray(offerRowsOverride)
         ? offerRowsOverride
-        : collectOfferRows(post?.blockMap),
-    [post?.blockMap, offerRowsOverride]
+        : collectOfferRows(post?.blockMap)
+      // 方案A：渠道行只写平台名，平台级字段由「平台档案」按平台名回填（行级值优先）
+      return applyPlatformProfiles(rows, platformProfiles)
+    },
+    [post?.blockMap, offerRowsOverride, platformProfiles]
   )
   // 「详细说明」只渲染模型级叙述：剔除内嵌明细表（其内容已由「免费获取渠道」渠道卡承载，避免重复）
   const articlePost = useMemo(

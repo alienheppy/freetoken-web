@@ -6,12 +6,16 @@ import { platformCards } from '../lib/modelView'
 
 /**
  * 平台一览（原设计 .plats / .pcard 结构）
- * 平台名与收录数由已发布模型行的 ext.platforms 并集派生；
+ * 收录数由已发布模型行的 ext.platforms 并集派生；
+ * 方案A：平台名/简介/网址来自「平台档案」（type=Platform 行），一眼可核对并前往官网；
  * 「已核实」= 该平台下所有模型行均为 verified（不含 pending/duplicate），
- * 不输出任何未经核实的健康声明；平台描述/注册网址需在 Notion 侧维护（ext 尚未承载）。
+ * 不输出任何未经核实的健康声明。
  */
-export default function PlatformGrid({ models }) {
-  const platforms = useMemo(() => platformCards(models), [models])
+export default function PlatformGrid({ models, platformProfiles }) {
+  const platforms = useMemo(
+    () => platformCards(models, platformProfiles),
+    [models, platformProfiles]
+  )
 
   if (platforms.length === 0) {
     return (
@@ -32,6 +36,13 @@ export default function PlatformGrid({ models }) {
             </span>
           </h3>
           {platform.limits && <p>{platform.limits}</p>}
+          {platform.url && (
+            <div className='plimk'>
+              <a href={platform.url} target='_blank' rel='noopener noreferrer'>
+                前往官网 ↗
+              </a>
+            </div>
+          )}
           <div className='lim'>
             {platform.verified && platform.verifiedAt
               ? `核实于 ${platform.verifiedAt}`
