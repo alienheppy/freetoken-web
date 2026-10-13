@@ -82,6 +82,7 @@ import {
 } from '@/themes/freetoken/lib/modelView'
 import {
   applyPlatformProfiles,
+  collectOfferPlatformNames,
   collectOfferRows,
   hasRenderableBody,
   normalizePlatformProfiles,
@@ -477,6 +478,54 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
 
     const { container } = render(<LayoutSlug post={null} lock />)
     expect(container.querySelector('.missing')).toBeTruthy()
+  })
+
+  test('LayoutSlug 对 type=Page 的普通单页（关于/友链）不渲染模型区块', () => {
+    const page = {
+      id: '18d2570237f483859de481e5ed7bcf47',
+      type: 'Page',
+      slug: 'about',
+      title: '关于 FreeTokenHub',
+      summary: '这个站点是什么',
+      href: '/about',
+      blockMap: {
+        block: {
+          p1: { value: { value: { id: 'p1', type: 'page', content: ['t1'] } } },
+          t1: { value: { value: { id: 't1', type: 'text', properties: { title: [['正文']] } } } }
+        }
+      },
+      ext: {}
+    }
+    render(<LayoutSlug post={page} />)
+
+    // 单页骨架：返回首页 + 标题 + 摘要 + 正文
+    const hero = screen.getByTestId('ft-page-hero')
+    expect(within(hero).getByText('返回首页')).toHaveAttribute('href', '/')
+    expect(hero.querySelector('h1').textContent).toBe('关于 FreeTokenHub')
+    expect(hero.querySelector('.herosub').textContent).toBe('这个站点是什么')
+    expect(screen.getByTestId('ft-article')).toBeTruthy()
+
+    // 模型专属区块不得出现（这些字段单页没有，渲染出来只会是 0/空）
+    expect(screen.queryByTestId('ft-detail-hero')).toBeNull()
+    expect(screen.queryByTestId('ft-facts')).toBeNull()
+    expect(screen.queryByTestId('ft-featlist')).toBeNull()
+    expect(screen.queryByTestId('ft-offers')).toBeNull()
+    expect(screen.queryByText('模型特性。')).toBeNull()
+    expect(screen.queryByText('免费获取渠道。')).toBeNull()
+  })
+
+  test('LayoutSlug 类型缺失/异常时仍走模型骨架（历史数据行为不变）', () => {
+    const legacy = {
+      id: 'p-legacy',
+      title: 'DeepSeek V3',
+      summary: '性价比之选',
+      href: '/deepseek-v3',
+      ext: { provider: 'DeepSeek' }
+    }
+    render(<LayoutSlug post={legacy} offerRowsOverride={[]} />)
+    expect(screen.getByTestId('ft-detail-hero')).toBeTruthy()
+    expect(screen.getByTestId('ft-facts')).toBeTruthy()
+    expect(screen.queryByTestId('ft-page-hero')).toBeNull()
   })
 
   test('LayoutSearch 渲染搜索框与结果网格', () => {
@@ -1019,6 +1068,13 @@ describe('themes/freetoken lib/offerBlocks 渠道解析与正文剔除', () => {
     expect(rows[1].context).toBe(12000)
     expect(collectOfferRows(null)).toEqual([])
     expect(collectOfferRows({ block: {} })).toEqual([])
+  })
+
+  test('collectOfferPlatformNames：渠道子表 → 平台名去重数组（与渠道行同源）', () => {
+    expect(collectOfferPlatformNames(makeBlockMap())).toEqual(['Kiraai', 'Pkay'])
+    // 坏值/无渠道表 → []
+    expect(collectOfferPlatformNames(null)).toEqual([])
+    expect(collectOfferPlatformNames({ block: {} })).toEqual([])
   })
 
   test('stripEmbeddedTables：剔除内嵌表块及其 page.content 引用，保留正文文字块', () => {

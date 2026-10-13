@@ -14,7 +14,7 @@ const CONFIG = {
   // 模型库区块文案（原设计 page.jsx）
   FREETOKEN_MODELS_TITLE: '免费模型库。',
   FREETOKEN_MODELS_SUB:
-    'OpenAI 兼容接口，注册获取 Key，替换 base_url 即可调用。数据由 Notion 后台同步维护。',
+    'OpenAI 兼容接口，注册获取 Key，替换 base_url 即可调用。',
   FREETOKEN_MODELS_NOTICE:
     '免费额度具有时效性，随时可能调整。每条数据均标注核实日期，请以平台官网为准。',
   FREETOKEN_SEARCH_PLACEHOLDER: '搜索模型或厂商',
@@ -36,6 +36,9 @@ const CONFIG = {
   FREETOKEN_DETAIL_ARTICLE_TITLE: '详细说明。',
   FREETOKEN_DETAIL_EMPTY_OFFERS: '暂无已收录的免费获取渠道。',
   FREETOKEN_DETAIL_MISSING: '未找到该模型。',
+
+  // 单页（Notion type=Page 的普通页面，如 /about、/links，非模型条目）
+  FREETOKEN_PAGE_BACK: '返回首页',
 
   // curl 示例的 base_url：原设计取渠道 api 字段，主题侧 ext 不含该字段，
   // 因此与老站兜底一致（offers[0].api 缺失时用 OpenRouter 兼容端点）

@@ -31,6 +31,18 @@ import { adaptPost, adaptPosts, isStale } from './lib/adaptModel'
 import { useClientToday } from './lib/useClientToday'
 
 /**
+ * 是否为「普通单页」（非模型条目）。
+ * 判定口径与数据来源一致：主库 type=Post 是模型条目（唯一会渲染
+ * 「模型特性 / 免费获取渠道」的类型），type=Page 是官方定义的普通单页
+ * （关于、友链、作品集…），只有标题、摘要与 Notion 正文。
+ * 仅在显式 type=Page 时切换骨架：类型缺失/异常仍走模型骨架，
+ * 避免对历史数据造成行为变化。
+ */
+function isPlainPage(post) {
+  return Boolean(post) && post.type === 'Page'
+}
+
+/**
  * 首页：原设计 page.jsx 结构（hero → strip → models → platforms）
  * 数据：官方 SiteDataApi 注入的 posts（已发布），业务字段来自 ext（adaptPosts 只适配一次）
  */
@@ -99,6 +111,9 @@ const LayoutPostList = props => {
  * 详情页：原设计 model/[slug]/page.jsx 逐块移植
  * 顺序：hero（返回/eyebrow/h1/herosub/heropills）→ 模型特性 → 免费获取渠道
  *       → 快速接入（curl + 拷贝）→ Notion 正文 → 页脚报告入口
+ *
+ * 例外：Notion 里 type 不是 Post 的行（type=Page 的普通单页，例如「关于」「友链」）
+ * 没有模型属性，走下面的单页骨架，不渲染「模型特性 / 免费获取渠道 / 核实日期」。
  */
 const LayoutSlug = props => {
   const { post, lock, validPassword, offerRowsOverride, platformProfiles } = props
@@ -159,6 +174,28 @@ const LayoutSlug = props => {
   }
 
   if (!post) return null
+
+  // 普通单页（关于 / 友链等）：只有标题、摘要与 Notion 正文
+  if (isPlainPage(post)) {
+    return (
+      <div className='detail'>
+        <div className='hero' data-testid='ft-page-hero'>
+          <SmartLink href='/' className='back'>
+            <span className='chev'>‹</span>
+            {siteConfig('FREETOKEN_PAGE_BACK', null, CONFIG)}
+          </SmartLink>
+          <h1>{post.title}</h1>
+          {post.summary && <div className='herosub'>{post.summary}</div>}
+        </div>
+
+        <section data-testid='ft-article'>
+          <div id='article-wrapper'>
+            <NotionPage post={post} />
+          </div>
+        </section>
+      </div>
+    )
+  }
 
   const reportHref = `${siteConfig('FREETOKEN_REPORT_URL', null, CONFIG)}${encodeURIComponent(
     `过期报告：${model.name}`
