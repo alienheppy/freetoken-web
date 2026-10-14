@@ -1207,6 +1207,27 @@ describe('themes/freetoken lib/offerBlocks 渠道解析与正文剔除', () => {
     expect(collectOfferPlatformNames({ block: {} })).toEqual([])
   })
 
+  test('collectOfferRows：page_sort 为空时从 collection_query 兜底取行（新建视图场景）', () => {
+    // 新建的内嵌表视图 page_sort 常为空，行 id 只存在于 collection_query 里；
+    // 且该查询对象无外层 value 包装（与 collection / collection_view 形状不同）。
+    const bm = makeBlockMap()
+    bm.collection_view.v1.value.value.page_sort = []
+    bm.collection_query = {
+      d4e2: {
+        v1: { collection_group_results: { type: 'results', blockIds: ['row-k', 'row-p'], hasMore: false } }
+      }
+    }
+    expect(collectOfferRows(bm).map(r => r.name)).toEqual(['Kiraai', 'Pkay'])
+    expect(collectOfferPlatformNames(bm)).toEqual(['Kiraai', 'Pkay'])
+    // 查询对象被包一层 value 时同样可解析
+    bm.collection_query = {
+      d4e2: {
+        v1: { value: { value: { collection_group_results: { type: 'results', blockIds: ['row-p'], hasMore: false } } } }
+      }
+    }
+    expect(collectOfferRows(bm).map(r => r.name)).toEqual(['Pkay'])
+  })
+
   test('stripEmbeddedTables：剔除内嵌表块及其 page.content 引用，保留正文文字块', () => {
     const bm = makeBlockMap()
     const stripped = stripEmbeddedTables(bm)
