@@ -24,6 +24,7 @@ import ModelDetailFacts from './components/ModelDetailFacts'
 import ModelDetailHero from './components/ModelDetailHero'
 import ModelOffers from './components/ModelOffers'
 import ModelToolbar from './components/ModelToolbar'
+import PlatformDetail from './components/PlatformDetail'
 import PlatformGrid from './components/PlatformGrid'
 import SearchInput from './components/SearchInput'
 import StatsStrip from './components/StatsStrip'
@@ -271,6 +272,16 @@ const LayoutSearch = props => {
 }
 
 /**
+ * 平台详情页（/platform/[platform]）：某提供商的免费模型列表
+ * 平台档案与模型列表均由 pages/platform/[platform] 注入。
+ */
+const LayoutPlatform = props => {
+  const { platform, posts } = props
+  if (!platform) return null
+  return <PlatformDetail platform={platform} posts={posts} />
+}
+
+/**
  * 归档页（原设计无对应页，沿用原设计卡片样式）
  */
 const LayoutArchive = props => {
@@ -380,6 +391,7 @@ export {
   LayoutBase,
   LayoutCategoryIndex,
   LayoutIndex,
+  LayoutPlatform,
   LayoutPostList,
   LayoutSearch,
   LayoutSlug,

@@ -1,0 +1,139 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+
+import SmartLink from '@/components/SmartLink'
+import { siteConfig } from '@/lib/config'
+
+import CONFIG from '../config'
+import { adaptPosts, fmtCtx } from '../lib/adaptModel'
+
+/**
+ * 平台详情页：某提供商（Notion type=Platform）的免费模型列表。
+ * 结构：返回（回首页平台区块）→ 平台名 + 认证徽标 → 元信息 → 平台简介 → 免费模型表格。
+ * 模型用表格列表呈现（而非卡片网格）：一眼即可按「上下文 / 能力 / 提供商」横向对比，
+ * 提供商数量再多也不会撑爆版面。
+ * 模型列表由 pages/platform/[platform] 传入（已按 ext.platforms 命中该平台过滤）。
+ */
+export default function PlatformDetail({ platform, posts }) {
+  const models = useMemo(() => adaptPosts(posts), [posts])
+  const [copied, setCopied] = useState(false)
+
+  if (!platform) return null
+
+  const certified =
+    Array.isArray(platform.certifications) && platform.certifications.length > 0
+
+  // Base URL 一键复制：省去用户手动划选。剪贴板不可用时静默降级，不阻塞交互。
+  const copyBaseUrl = () => {
+    if (!platform.baseUrl) return
+    try {
+      navigator?.clipboard?.writeText(platform.baseUrl)
+    } catch (e) {
+      /* 剪贴板不可用：静默降级 */
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <div className='detail platform-detail' data-testid='ft-platform-detail'>
+      <div className='hero'>
+        <SmartLink href='/#platforms' className='back'>
+          <span className='chev'>‹</span>
+          {siteConfig('FREETOKEN_PLATFORM_BACK', null, CONFIG)}
+        </SmartLink>
+        <h1>
+          {platform.name}{' '}
+          <span className={'badge ' + (certified ? 'ok' : 'todo')}>
+            {certified ? platform.certifications[0] : '待核实'}
+          </span>
+        </h1>
+        {platform.desc && <div className='herosub'>{platform.desc}</div>}
+        <div className='heropills'>
+          {platform.quota && <span className='hpill dark'>{platform.quota}</span>}
+          {platform.context > 0 && (
+            <span className='hpill'>上下文 {fmtCtx(platform.context)}</span>
+          )}
+          <span className='hpill'>{models.length} 个免费模型</span>
+        </div>
+        {(platform.url || platform.baseUrl) && (
+          <div className='pmeta'>
+            {platform.url && (
+              <SmartLink
+                href={platform.url}
+                className='pmetabtn'
+                target='_blank'
+                rel='noopener noreferrer'>
+                前往官网
+              </SmartLink>
+            )}
+            {platform.baseUrl && (
+              <button
+                type='button'
+                className='pmetaurl'
+                title='点击复制 Base URL'
+                aria-label={`复制 Base URL：${platform.baseUrl}`}
+                onClick={copyBaseUrl}>
+                <span className='pmetaurl-text'>{platform.baseUrl}</span>
+                <span className='pmetaurl-copy'>{copied ? '已复制' : '复制'}</span>
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {platform.intro && (
+        <section data-testid='ft-platform-intro'>
+          <h2>{siteConfig('FREETOKEN_PLATFORM_INTRO_TITLE', null, CONFIG)}</h2>
+          <p className='introcopy'>{platform.intro}</p>
+        </section>
+      )}
+
+      <section>
+        <h2>{siteConfig('FREETOKEN_PLATFORM_MODELS_TITLE', null, CONFIG)}</h2>
+        <div className='ptable' data-testid='ft-platform-models'>
+          {models.length > 0 && (
+            <div className='phead' aria-hidden='true'>
+              <span>模型</span>
+              <span>上下文</span>
+              <span>能力</span>
+              <span>模型提供商</span>
+            </div>
+          )}
+          {models.map(model => (
+            <SmartLink
+              key={model.id || model.href}
+              href={model.href || '/'}
+              data-testid='ft-platform-model'
+              className='prow'>
+              <div className='pmain'>
+                <div className='pmname'>{model.name}</div>
+                {model.desc && <div className='pmdesc'>{model.desc}</div>}
+              </div>
+              <div className='pctx' data-label='上下文'>
+                {fmtCtx(model.context)}
+              </div>
+              <div className='pcaps' data-label='能力'>
+                {model.vision && <span className='tag dot vi'>视觉</span>}
+                {model.tools && <span className='tag dot tools'>工具</span>}
+                {model.reasoning && <span className='tag dot rsn'>推理</span>}
+                {!model.vision && !model.tools && !model.reasoning && (
+                  <span className='pnone'>—</span>
+                )}
+              </div>
+              <div className='pprov' data-label='模型提供商'>
+                {model.platforms.length}
+              </div>
+            </SmartLink>
+          ))}
+          {models.length === 0 && (
+            <div className='empty'>
+              {siteConfig('FREETOKEN_PLATFORM_EMPTY', null, CONFIG)}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  )
+}

@@ -2,7 +2,9 @@
 
 import { useMemo } from 'react'
 
-import { platformCards } from '../lib/modelView'
+import SmartLink from '@/components/SmartLink'
+
+import { platformCards, platformHref } from '../lib/modelView'
 
 /**
  * 平台一览（原设计 .plats / .pcard 结构）
@@ -10,6 +12,10 @@ import { platformCards } from '../lib/modelView'
  * 方案A：平台名/简介/网址来自「平台档案」（type=Platform 行），一眼可核对并前往官网；
  * 徽标文案来自平台档案的「平台认证」标签：选中即展示该标签，未选则弱化为「待核实」，
  * 不输出任何未经后台确认的健康声明。
+ *
+ * 整卡可点 + 悬停动效（与模型卡 .mcard 一致）：卡片标题用「拉伸链接」铺满整卡，
+ * 点击进入平台详情页（该平台的免费模型列表）；「前往官网」是独立外链，
+ * 通过样式提到覆盖层之上，保持可点（避免 <a> 嵌套 <a>）。
  */
 export default function PlatformGrid({ models, platformProfiles }) {
   const platforms = useMemo(
@@ -30,7 +36,9 @@ export default function PlatformGrid({ models, platformProfiles }) {
       {platforms.map(platform => (
         <div className='pcard' key={platform.name} data-testid='ft-platform'>
           <h3>
-            {platform.name}{' '}
+            <SmartLink href={platformHref(platform.name)} className='pname'>
+              {platform.name}
+            </SmartLink>{' '}
             <span className={'badge ' + (platform.certified ? 'ok' : 'todo')}>
               {platform.certified ? platform.certifications[0] : '待核实'}
             </span>

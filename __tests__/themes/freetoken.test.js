@@ -46,6 +46,7 @@ jest.mock('@/lib/config', () => ({
 import {
   LayoutBase,
   LayoutIndex,
+  LayoutPlatform,
   LayoutPostList,
   LayoutSlug,
   LayoutSearch,
@@ -77,6 +78,7 @@ import {
   maxContext,
   offerRows,
   platformCards,
+  platformHref,
   providerOptions,
   staleTitle
 } from '@/themes/freetoken/lib/modelView'
@@ -349,6 +351,99 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     // 仍有厂商时该行保留（见上方工具栏用例）
     const { container: withProv } = render(<LayoutIndex posts={mockPosts} />)
     expect(withProv.querySelector('.provbar')).toBeTruthy()
+  })
+
+  test('平台卡片整卡可点进入平台详情页，且「前往官网」为独立外链', () => {
+    const models = adaptPosts(mockPosts)
+    const profiles = [
+      { name: 'OpenRouter', url: 'https://openrouter.ai', certifications: ['平台认证'] }
+    ]
+    const { unmount } = render(
+      <LayoutIndex posts={mockPosts} platformProfiles={profiles} />
+    )
+    const cards = screen.getAllByTestId('ft-platform')
+    const orCard = cards.find(c => c.textContent.includes('OpenRouter'))
+    // 卡片标题即进入平台详情页的链接，href 指向 /platform/<名称>
+    const mainLink = orCard.querySelector('a.pname')
+    expect(mainLink).toHaveAttribute(
+      'href',
+      `/platform/${encodeURIComponent('OpenRouter')}`
+    )
+    // 外链（前往官网）独立于拉伸链接，仍指向官网
+    expect(orCard.querySelector('.plimk a')).toHaveAttribute(
+      'href',
+      'https://openrouter.ai'
+    )
+    // 未认证平台不展示「平台认证」徽标
+    expect(platformHref('Kiraai')).toBe(
+      `/platform/${encodeURIComponent('Kiraai')}`
+    )
+    expect(platformHref('')).toBe('/#platforms')
+    unmount()
+  })
+
+  test('LayoutPlatform 渲染平台档案与免费模型网格，空列表有兜底文案', () => {
+    const { unmount } = render(
+      <LayoutPlatform
+        platform={{
+          name: 'OpenRouter',
+          desc: '聚合平台',
+          url: 'https://openrouter.ai',
+          baseUrl: 'https://openrouter.ai/api/v1',
+          quota: '新账户送额度',
+          context: 131072,
+          certifications: ['平台认证'],
+          intro: 'OpenRouter 聚合多家模型，提供统一 OpenAI 兼容端点。'
+        }}
+        posts={mockPosts}
+      />
+    )
+    const root = screen.getByTestId('ft-platform-detail')
+    expect(within(root).getByRole('heading', { name: /OpenRouter/ })).toBeInTheDocument()
+    expect(within(root).getByText('平台认证')).toBeInTheDocument()
+    expect(within(root).getByText('聚合平台')).toBeInTheDocument()
+    expect(within(root).getByText('新账户送额度')).toBeInTheDocument()
+    expect(within(root).getByText('3 个免费模型')).toBeInTheDocument()
+    // 平台简介区块：标题 + 正文（来自 Notion「平台简介100字介绍」）
+    const introSection = within(root).getByTestId('ft-platform-intro')
+    expect(within(introSection).getByText('平台简介。')).toBeInTheDocument()
+    expect(
+      within(introSection).getByText(/OpenRouter 聚合多家模型/)
+    ).toBeInTheDocument()
+    // Base URL 一键复制：可点按钮，含「复制」提示
+    const copyBtn = within(root).getByRole('button', { name: /复制 Base URL/ })
+    expect(copyBtn.querySelector('.pmetaurl-text').textContent).toBe(
+      'https://openrouter.ai/api/v1'
+    )
+    expect(copyBtn.querySelector('.pmetaurl-copy').textContent).toBe('复制')
+    // 免费模型以表格列表呈现（非卡片网格）
+    const table = within(root).getByTestId('ft-platform-models')
+    expect(table).toHaveClass('ptable')
+    // 末列表头文案为「模型提供商」
+    expect(within(table).getByText('模型提供商')).toBeInTheDocument()
+    expect(within(table).queryByTestId('ft-model-card')).toBeNull()
+    const rows = within(table).getAllByTestId('ft-platform-model')
+    expect(rows).toHaveLength(3)
+    // 行内容：模型名 + 上下文档位 + 提供商数
+    expect(rows[0].querySelector('.pmname').textContent).toBe('GPT-4o')
+    expect(rows[0].querySelector('.pctx').textContent).toBe('128K')
+    expect(rows[0].querySelector('.pprov').textContent).toBe('2')
+    // 每行即进入模型详情页的链接
+    expect(rows[0]).toHaveAttribute('href', '/gpt-4o')
+    expect(within(root).getByText('返回平台一览')).toHaveAttribute(
+      'href',
+      '/#platforms'
+    )
+    unmount()
+
+    // 空列表兜底 + platform 缺失时不渲染
+    const { unmount: unmount2 } = render(
+      <LayoutPlatform platform={{ name: 'ZeroAI', certifications: [] }} posts={[]} />
+    )
+    expect(screen.getByText('该平台暂未收录免费模型。')).toHaveClass('empty')
+    unmount2()
+    const { container: empty } = render(<LayoutPlatform platform={null} posts={[]} />)
+    expect(empty.firstChild).toBeNull()
   })
 
   test('LayoutPostList 渲染分类标题与卡片网格，空列表有兜底文案', () => {

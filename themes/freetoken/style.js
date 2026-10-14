@@ -620,6 +620,26 @@ const Style = () => (
       background: var(--bg-alt);
       border-radius: var(--radius);
       padding: 28px 26px;
+      position: relative;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    /* 悬停动效与模型卡 .mcard 一致；整卡可点，点击进入平台详情页 */
+    #theme-freetoken .pcard:hover {
+      transform: scale(1.015);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+    }
+
+    /* 拉伸链接：铺满整卡使卡片可点；相对 .pcard 定位（h3 为 static 不受影响） */
+    #theme-freetoken .pcard .pname {
+      color: inherit;
+    }
+
+    #theme-freetoken .pcard .pname::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
     }
 
     #theme-freetoken .pcard h3 {
@@ -645,6 +665,9 @@ const Style = () => (
 
     #theme-freetoken .plimk {
       margin-top: 10px;
+      /* 提到拉伸链接覆盖层之上，保证「前往官网」仍可点击 */
+      position: relative;
+      z-index: 1;
     }
 
     #theme-freetoken .plimk a {
@@ -700,6 +723,130 @@ const Style = () => (
     #theme-freetoken .badge.todo {
       background: rgba(0, 0, 0, 0.05);
       color: var(--faint);
+    }
+
+    /* ---------- platform detail: 免费模型表格 ---------- */
+    #theme-freetoken .ptable {
+      margin-top: 26px;
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--card);
+    }
+
+    #theme-freetoken .ptable .empty {
+      padding: 70px 0;
+    }
+
+    #theme-freetoken .phead,
+    #theme-freetoken .prow {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 96px minmax(0, 240px) 108px;
+      align-items: center;
+      gap: 20px;
+      padding: 15px 22px;
+    }
+
+    #theme-freetoken .phead {
+      padding-top: 13px;
+      padding-bottom: 13px;
+      font-size: 12px;
+      color: var(--faint);
+      background: var(--bg-alt);
+      border-bottom: 1px solid var(--hairline);
+    }
+
+    #theme-freetoken .prow {
+      color: inherit;
+      transition: background 0.15s ease;
+    }
+
+    #theme-freetoken .prow + .prow {
+      border-top: 1px solid var(--hairline);
+    }
+
+    #theme-freetoken .prow:hover {
+      background: var(--bg-alt);
+    }
+
+    #theme-freetoken .pmname {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    #theme-freetoken .pmdesc {
+      font-size: 13px;
+      color: var(--sub);
+      margin-top: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #theme-freetoken .pctx {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    #theme-freetoken .pcaps {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    #theme-freetoken .pnone {
+      font-size: 14px;
+      color: var(--faint);
+    }
+
+    #theme-freetoken .pprov {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      text-align: center;
+    }
+
+    /* 「模型提供商」列：表头与数字同为居中，保持与数值对齐 */
+    #theme-freetoken .phead > span:last-child {
+      text-align: center;
+    }
+
+    /* 移动端：表格降级为堆叠卡片，用 data-label 前缀标注列含义 */
+    @media (max-width: 760px) {
+      #theme-freetoken .phead {
+        display: none;
+      }
+
+      #theme-freetoken .prow {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 18px 20px;
+      }
+
+      #theme-freetoken .pctx,
+      #theme-freetoken .pcaps,
+      #theme-freetoken .pprov {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        text-align: left;
+      }
+
+      #theme-freetoken .pctx::before,
+      #theme-freetoken .pcaps::before,
+      #theme-freetoken .pprov::before {
+        content: attr(data-label);
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--faint);
+        flex-shrink: 0;
+      }
+
+      #theme-freetoken .pcaps {
+        justify-content: flex-start;
+      }
     }
 
     /* footer */
@@ -803,6 +950,83 @@ const Style = () => (
       background: rgba(255, 149, 18, 0.14);
       color: var(--amber);
       font-weight: 600;
+    }
+
+    /* 平台详情头部：官网入口 + Base URL 收成一行，与药丸同族视觉 */
+    #theme-freetoken .pmeta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    #theme-freetoken .pmetabtn {
+      display: inline-flex;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--blue);
+      border-radius: 980px;
+      padding: 8px 18px;
+      transition: background 0.2s;
+    }
+
+    #theme-freetoken .pmetabtn:hover {
+      background: #0077ed;
+    }
+
+    #theme-freetoken .pmetabtn::after {
+      content: " ↗";
+    }
+
+    #theme-freetoken .pmetaurl {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font: inherit;
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      color: var(--sub);
+      background: var(--bg-alt);
+      border: none;
+      border-radius: 980px;
+      padding: 7px 16px;
+      cursor: pointer;
+      overflow: hidden;
+      max-width: 100%;
+      transition: background 0.15s ease;
+    }
+
+    #theme-freetoken .pmetaurl:hover {
+      background: rgba(0, 0, 0, 0.07);
+    }
+
+    #theme-freetoken .pmetaurl-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #theme-freetoken .pmetaurl-copy {
+      flex-shrink: 0;
+      font-family:
+        -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+        "Microsoft YaHei", sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--blue);
+    }
+
+    /* 平台简介正文 */
+    #theme-freetoken .introcopy {
+      margin-top: 18px;
+      font-size: 16px;
+      line-height: 1.75;
+      color: var(--sub);
+      max-width: 760px;
+      white-space: pre-line;
     }
 
     #theme-freetoken .detail :where(section:not(#article-wrapper section)) {

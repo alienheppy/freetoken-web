@@ -27,6 +27,15 @@ export const SORTS = [
 /** 供应商筛选的「全部」项（原设计字面量） */
 export const ALL_PROVIDERS = '全部'
 
+/**
+ * 平台详情页链接：以平台名作为路径段（URL 编码），无名称时回退到首页平台区块。
+ * 与 pages/platform/[platform] 一一对应。
+ */
+export function platformHref(name) {
+  const n = typeof name === 'string' ? name.trim() : ''
+  return n ? `/platform/${encodeURIComponent(n)}` : '/#platforms'
+}
+
 /** 128K+ 筛选阈值（原设计 131072） */
 export const BIG_CONTEXT = 131072
 

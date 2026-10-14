@@ -37,6 +37,12 @@ const CONFIG = {
   FREETOKEN_DETAIL_EMPTY_OFFERS: '暂无已收录的免费获取渠道。',
   FREETOKEN_DETAIL_MISSING: '未找到该模型。',
 
+  // 平台详情页文案（/platform/[platform]）
+  FREETOKEN_PLATFORM_BACK: '返回平台一览',
+  FREETOKEN_PLATFORM_INTRO_TITLE: '平台简介。',
+  FREETOKEN_PLATFORM_MODELS_TITLE: '免费模型。',
+  FREETOKEN_PLATFORM_EMPTY: '该平台暂未收录免费模型。',
+
   // 单页（Notion type=Page 的普通页面，如 /about、/links，非模型条目）
   FREETOKEN_PAGE_BACK: '返回首页',
 
