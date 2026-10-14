@@ -1039,6 +1039,10 @@ const Style = () => (
       border-radius: 980px;
       padding: 6px 14px;
       cursor: pointer;
+      /* 固定宽度：避免「接入方式」↔「收起」文案变化时列宽抖动，
+         导致左侧「上下文 / Base URL」两列来回位移。 */
+      min-width: 84px;
+      text-align: center;
     }
 
     #theme-freetoken .otoggle:hover {
