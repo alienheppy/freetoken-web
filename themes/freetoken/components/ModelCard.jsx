@@ -2,12 +2,14 @@
 
 import SmartLink from '@/components/SmartLink'
 
-import { fmtCtx, isStale } from '../lib/adaptModel'
+import { isStale } from '../lib/adaptModel'
 import { staleTitle } from '../lib/modelView'
 
 /**
  * 模型卡片（原设计 .mcard 结构，首页/列表/搜索共用）
  * 结构：mname + prov + mdesc + mtags（平台标签 + 能力标签 + 过期徽标）+ ctxrow
+ * 底栏展示「模型提供商 N」：N = 该模型已收录的免费提供商（渠道）数，
+ * 数据来源与平台标签一致（model.platforms）。
  * 过期条目按原设计弱化（.mcard.stale / .stale-label），并给出同样口径的 title 提示
  */
 export default function ModelCard({ model, today }) {
@@ -15,7 +17,8 @@ export default function ModelCard({ model, today }) {
 
   const expired = isStale(model, today)
   const title = staleTitle(model, today)
-  const platforms = Array.isArray(model.platforms) ? model.platforms.slice(0, 2) : []
+  const allPlatforms = Array.isArray(model.platforms) ? model.platforms : []
+  const platforms = allPlatforms.slice(0, 2)
 
   return (
     <SmartLink
@@ -40,8 +43,8 @@ export default function ModelCard({ model, today }) {
         {model.reasoning && <span className='tag dot rsn'>推理</span>}
       </div>
       <div className='ctxrow'>
-        <span>上下文窗口</span>
-        <b>{fmtCtx(model.context)}</b>
+        <span>模型提供商</span>
+        <b>{allPlatforms.length}</b>
       </div>
       {expired && <span className='stale-label'>可能过期</span>}
     </SmartLink>

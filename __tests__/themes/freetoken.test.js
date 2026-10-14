@@ -257,7 +257,9 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(first.querySelector('.mname').textContent).toBe('GPT-4o')
     expect(first.querySelector('.prov').textContent).toBe('OpenAI')
     expect(first.querySelector('.mdesc').textContent).toBe('summary1')
-    expect(first.querySelector('.ctxrow b').textContent).toBe('128K')
+    // 底栏展示「模型提供商 N」= 该模型已收录的免费供应商数（与平台标签同源）
+    expect(first.querySelector('.ctxrow span').textContent).toBe('模型提供商')
+    expect(first.querySelector('.ctxrow b').textContent).toBe('2')
     expect(first.querySelectorAll('.tag').length).toBeGreaterThan(1)
 
     // 过期条目：原设计的 stale 弱化 + 徽标 + 角标
