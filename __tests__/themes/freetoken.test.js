@@ -338,6 +338,19 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(screen.getByTestId('ft-stat-maxContext').textContent).toBe('0')
   })
 
+  test('模型均未填厂商时隐藏供应商筛选行（避免与能力筛选的「全部」重复）', () => {
+    // 真实数据里厂商（ext.provider）常为空：此时该行只剩一个「全部」，属多余
+    const noProviderPosts = [
+      { id: 'n1', title: 'X', href: '/x', ext: { platforms: ['P1'] } }
+    ]
+    const { container } = render(<LayoutIndex posts={noProviderPosts} />)
+    expect(providerOptions(adaptPosts(noProviderPosts))).toEqual(['全部'])
+    expect(container.querySelector('.provbar')).toBeNull()
+    // 仍有厂商时该行保留（见上方工具栏用例）
+    const { container: withProv } = render(<LayoutIndex posts={mockPosts} />)
+    expect(withProv.querySelector('.provbar')).toBeTruthy()
+  })
+
   test('LayoutPostList 渲染分类标题与卡片网格，空列表有兜底文案', () => {
     const { unmount } = render(<LayoutPostList posts={mockPosts} category='LLM' />)
     expect(screen.getByText('LLM')).toBeInTheDocument()

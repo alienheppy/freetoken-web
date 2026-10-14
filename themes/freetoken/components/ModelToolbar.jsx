@@ -77,18 +77,22 @@ export default function ModelToolbar({ models, today }) {
         </div>
       </div>
 
-      <div className='toolbar provbar'>
-        {providers.map(p => (
-          <button
-            key={p}
-            type='button'
-            className={'chip' + (prov === p ? ' on' : '')}
-            aria-pressed={prov === p}
-            onClick={() => setProv(p)}>
-            {p}
-          </button>
-        ))}
-      </div>
+      {/* 供应商筛选：仅当确有厂商可选时才显示；否则只剩一个「全部」，
+          与上方能力筛选的「全部」重复，整行隐藏。 */}
+      {providers.length > 1 && (
+        <div className='toolbar provbar'>
+          {providers.map(p => (
+            <button
+              key={p}
+              type='button'
+              className={'chip' + (prov === p ? ' on' : '')}
+              aria-pressed={prov === p}
+              onClick={() => setProv(p)}>
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className='grid' data-testid='ft-model-grid'>
         {list.map(model => (
