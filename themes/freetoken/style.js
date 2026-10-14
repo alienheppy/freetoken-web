@@ -668,6 +668,9 @@ const Style = () => (
       /* 提到拉伸链接覆盖层之上，保证「前往官网」仍可点击 */
       position: relative;
       z-index: 1;
+      /* 命中区域收缩到胶囊本身：块级 div 默认撑满整行，
+         会把同行右侧空白也压在拉伸链接之上，导致该处点击进入不了详情页 */
+      width: fit-content;
     }
 
     #theme-freetoken .plimk a {

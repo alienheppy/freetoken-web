@@ -144,11 +144,14 @@ export function filterAndSortModels(models, options = {}) {
  * 未传 profiles 时行为与旧版完全一致（纯模型派生）。
  * @param {Array} models adaptPosts 输出
  * @param {Array} [profiles] 平台档案（normalizePlatformProfiles 输出或主库原始行）
+ * @param {Object} [platformCounts] 服务端全量口径的「平台 → 模型数」（SiteDataApi
+ *        collectFreetokenStats 下发）。首页 posts 会被 POSTS_PER_PAGE 截断，
+ *        此时模型派生计数会偏小，以该全量值为准；缺失/未下发时回退模型派生值。
  * @returns {Array<{name: string, count: number, verifiedCount: number, verified: boolean,
  *                  certified: boolean, certifications: string[],
  *                  verifiedAt: string, limits: string, url: string}>}
  */
-export function platformCards(models, profiles) {
+export function platformCards(models, profiles, platformCounts) {
   const map = new Map()
   for (const m of asList(models)) {
     const platforms = Array.isArray(m.platforms) ? m.platforms : []
@@ -216,9 +219,17 @@ export function platformCards(models, profiles) {
     if (certifications.length) card.certifications = certifications
     map.set(name, card)
   }
+  const fullCounts =
+    platformCounts && typeof platformCounts === 'object' ? platformCounts : null
   return Array.from(map.values())
     .map(card => ({
       ...card,
+      // 收录数优先用服务端全量口径（不受首页分页截断影响）；
+      // 没有该平台记录时沿用模型派生值（兼容不传第三参的旧调用）。
+      count:
+        fullCounts && Number.isFinite(fullCounts[card.name])
+          ? fullCounts[card.name]
+          : card.count,
       // 认证标签驱动展示；未配置认证一律「待核实」（不再用模型行状态反推）。
       certified: card.certifications.length > 0,
       verified: card.certifications.length > 0

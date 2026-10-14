@@ -17,10 +17,12 @@ import { platformCards, platformHref } from '../lib/modelView'
  * 点击进入平台详情页（该平台的免费模型列表）；「前往官网」是独立外链，
  * 通过样式提到覆盖层之上，保持可点（避免 <a> 嵌套 <a>）。
  */
-export default function PlatformGrid({ models, platformProfiles }) {
+export default function PlatformGrid({ models, platformProfiles, stats }) {
   const platforms = useMemo(
-    () => platformCards(models, platformProfiles),
-    [models, platformProfiles]
+    // stats.platformCounts 为服务端全量口径的「平台 → 模型数」：
+    // 首页 models 会被 POSTS_PER_PAGE 截断，只靠它数会偏小（实测 Apinex 7 → 5）。
+    () => platformCards(models, platformProfiles, stats?.platformCounts),
+    [models, platformProfiles, stats]
   )
 
   if (platforms.length === 0) {

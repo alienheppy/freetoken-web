@@ -284,6 +284,41 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(screen.queryByText('验证周期/天')).toBeNull()
   })
 
+  test('LayoutIndex：服务端 freetokenStats 全量口径驱动统计条与平台卡片（不受首页分页截断影响）', () => {
+    // 首页 posts 会被 pages/index.js 截断（POSTS_PER_PAGE），statistics 必须读服务端全量值。
+    const { unmount } = render(
+      <LayoutIndex
+        posts={[mockPosts[0]]}
+        platformProfiles={[
+          { name: 'Apinex', 网址: 'https://apinex.bond', 平台认证: '平台认证' }
+        ]}
+        freetokenStats={{
+          modelCount: 18,
+          maxContext: 1000000,
+          platformCounts: { OpenRouter: 9, Apinex: 9 }
+        }}
+      />
+    )
+    expect(screen.getByTestId('ft-stat-modelCount').textContent).toBe('18')
+    expect(screen.getByTestId('ft-stat-maxContext').textContent).toBe(fmtCtx(1000000))
+    const apinex = within(screen.getByTestId('ft-platforms'))
+      .getByText('Apinex')
+      .closest('[data-testid="ft-platform"]')
+    // 截断后的 posts 只有 1 条 OpenRouter；全量口径 9 必须覆盖模型派生值
+    expect(apinex.querySelector('.pcount').textContent).toBe('9 个模型')
+    expect(
+      within(screen.getByTestId('ft-platforms'))
+        .getByText('OpenRouter')
+        .closest('[data-testid="ft-platform"]')
+        .querySelector('.pcount').textContent
+    ).toBe('9 个模型')
+
+    // 未下发 stats 时回退按 models 现算（行为与旧版一致，不引入破坏性变化）
+    unmount()
+    render(<LayoutIndex posts={[mockPosts[0]]} />)
+    expect(screen.getByTestId('ft-stat-modelCount').textContent).toBe('1')
+  })
+
   test('首页工具栏行为与原设计一致：搜索(名/厂/ID)、能力筛选、供应商筛选、排序', () => {
     const { container } = render(<LayoutIndex posts={mockPosts} />)
     const search = screen.getByPlaceholderText('搜索模型或厂商')
@@ -1148,6 +1183,24 @@ describe('themes/freetoken lib/modelView 视图层工具', () => {
     expect(platformCards(models).every(c => c.url === '')).toBe(true)
   })
 
+  test('platformCards：服务端全量 platformCounts 优先于模型派生计数（首页分页不再少算）', () => {
+    // 首页只下发截断后的模型（Apinex 只剩 1 条），服务端全量口径给出真实 9
+    const truncated = adaptPosts([mockPosts[0]]) // OpenRouter + GitHub Models
+    const cards = platformCards(truncated, null, { OpenRouter: 9, 'GitHub Models': 1 })
+    expect(cards.find(c => c.name === 'OpenRouter').count).toBe(9)
+    expect(cards.find(c => c.name === 'GitHub Models').count).toBe(1)
+    // 未下发该平台 → 沿用模型派生值
+    expect(
+      platformCards(truncated, null, { Apinex: 9 }).find(c => c.name === 'OpenRouter').count
+    ).toBe(1)
+    // 未传第三参（旧调用）→ 完全回退模型派生值，行为不变
+    expect(platformCards(truncated).find(c => c.name === 'OpenRouter').count).toBe(1)
+    // 坏值（非有限数）不参与覆盖
+    expect(
+      platformCards(truncated, null, { OpenRouter: 'x' }).find(c => c.name === 'OpenRouter').count
+    ).toBe(1)
+  })
+
   test('buildCurl / offerRows 输出原设计结构', () => {
     const code = buildCurl({ id: 'nex-agi/nex-n2.5-mini:free' }, 'https://openrouter.ai/api/v1/')
     expect(code.split('\n')[0]).toBe(
@@ -1226,6 +1279,30 @@ describe('themes/freetoken lib/offerBlocks 渠道解析与正文剔除', () => {
       }
     }
     expect(collectOfferRows(bm).map(r => r.name)).toEqual(['Pkay'])
+  })
+
+  test('collectOfferRows：page_sort 非空但不完整时与 collection_query 取并集（真实缺行回归）', () => {
+    // 线上实测：view.page_sort 只是「已加载顺序」快照，会滞后/缺行；
+    // 例如 DeepSeek V4 Flash 的 Apinex 渠道行不在 page_sort 里，只在 collection_query.blockIds 中。
+    // 早先「page_sort 非空就不再读查询结果」导致该行被静默丢弃（平台统计少算）。
+    const bm = makeBlockMap()
+    bm.block['row-a'] = {
+      value: { value: { id: 'row-a', type: 'page', parent_id: 'd4e2', parent_table: 'collection', properties: { a: [['Apinex']] } } }
+    }
+    bm.collection_view.v1.value.value.page_sort = ['row-k'] // 快照只加载了一行
+    bm.collection_query = {
+      d4e2: {
+        v1: { collection_group_results: { type: 'results', blockIds: ['row-k', 'row-p', 'row-a'], hasMore: false } }
+      }
+    }
+    // 并集：page_sort 的行在前（保住用户视图顺序），查询结果补齐其余行
+    expect(collectOfferRows(bm).map(r => r.name)).toEqual(['Kiraai', 'Pkay', 'Apinex'])
+    // 两个来源有重叠 id 时按 page_sort 顺序优先，且不重复输出
+    bm.collection_view.v1.value.value.page_sort = ['row-p', 'row-k']
+    expect(collectOfferRows(bm).map(r => r.name)).toEqual(['Pkay', 'Kiraai', 'Apinex'])
+    // 只保留 page_sort 时的旧行为不变（无可补齐的行）
+    bm.collection_query = {}
+    expect(collectOfferRows(bm).map(r => r.name)).toEqual(['Pkay', 'Kiraai'])
   })
 
   test('stripEmbeddedTables：剔除内嵌表块及其 page.content 引用，保留正文文字块', () => {
@@ -1457,5 +1534,18 @@ describe('themes/freetoken 样式作用域（不污染全局）', () => {
       .join('\n')
     expect(sources).not.toMatch(/className={?'[^']*ft-[a-z]/)
     expect(sources).not.toMatch(/className={?"[^"]*ft-[a-z]/)
+  })
+
+  test('回归守卫：平台卡片「前往官网」命中区域收缩到胶囊，不再遮挡整卡拉伸链接', () => {
+    // .plimk 是块级 div，默认撑满整行；若同时 z-index 高于拉伸链接覆盖层，
+    // 同行右侧空白也会被它吞掉点击，用户点不进平台详情页（浏览器实测反馈）。
+    const matched = styleSource.match(/#theme-freetoken \.plimk \{([\s\S]*?)\}/)
+    expect(matched).toBeTruthy()
+    const rule = matched[1]
+    // 命中区域收缩到胶囊自身宽度
+    expect(rule).toMatch(/width:\s*fit-content/)
+    // 但仍需悬于覆盖层之上，保证「前往官网」外链本身可点
+    expect(rule).toMatch(/position:\s*relative/)
+    expect(rule).toMatch(/z-index:\s*1/)
   })
 })

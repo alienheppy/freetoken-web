@@ -48,14 +48,20 @@ function isPlainPage(post) {
  * 数据：官方 SiteDataApi 注入的 posts（已发布），业务字段来自 ext（adaptPosts 只适配一次）
  */
 const LayoutIndex = props => {
-  const { posts, platformProfiles } = props
+  // freetokenStats：服务端全量口径聚合（模型总数 / 最大上下文 / 每平台模型数）。
+  // 首页 posts 会被 POSTS_PER_PAGE 截断，统计与平台卡片必须读这份全量值。
+  const { posts, platformProfiles, freetokenStats } = props
   const models = useMemo(() => adaptPosts(posts), [posts])
   const today = useClientToday()
 
   return (
     <>
       <Hero />
-      <StatsStrip models={models} platformProfiles={platformProfiles} />
+      <StatsStrip
+        models={models}
+        platformProfiles={platformProfiles}
+        stats={freetokenStats}
+      />
 
       <section id='models'>
         <div className='sechead'>
@@ -77,7 +83,11 @@ const LayoutIndex = props => {
             {siteConfig('FREETOKEN_PLATFORMS_SUB', null, CONFIG)}
           </div>
         </div>
-        <PlatformGrid models={models} platformProfiles={platformProfiles} />
+        <PlatformGrid
+          models={models}
+          platformProfiles={platformProfiles}
+          stats={freetokenStats}
+        />
       </section>
     </>
   )
