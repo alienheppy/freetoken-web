@@ -22,7 +22,7 @@ const CONFIG = {
   // 平台区块文案（原设计 page.jsx）
   FREETOKEN_PLATFORMS_TITLE: '免费平台一览。',
   FREETOKEN_PLATFORMS_SUB:
-    '各大平台免费额度速查。标注“已核实”的数据经过当日实测，其余待逐个核实后收录。',
+    '各大平台免费额度速查。标注“平台认证”的平台经人工核验后收录，其余待逐个核实。',
 
   // 详情页文案（原设计 model/[slug]/page.jsx）
   FREETOKEN_DETAIL_BACK: '返回模型库',

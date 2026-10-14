@@ -8,8 +8,8 @@ import { platformCards } from '../lib/modelView'
  * 平台一览（原设计 .plats / .pcard 结构）
  * 收录数由已发布模型行的 ext.platforms 并集派生；
  * 方案A：平台名/简介/网址来自「平台档案」（type=Platform 行），一眼可核对并前往官网；
- * 「已核实」= 该平台下所有模型行均为 verified（不含 pending/duplicate），
- * 不输出任何未经核实的健康声明。
+ * 徽标文案来自平台档案的「平台认证」标签：选中即展示该标签，未选则弱化为「待核实」，
+ * 不输出任何未经后台确认的健康声明。
  */
 export default function PlatformGrid({ models, platformProfiles }) {
   const platforms = useMemo(
@@ -31,8 +31,8 @@ export default function PlatformGrid({ models, platformProfiles }) {
         <div className='pcard' key={platform.name} data-testid='ft-platform'>
           <h3>
             {platform.name}{' '}
-            <span className={'badge ' + (platform.verified ? 'ok' : 'todo')}>
-              {platform.verified ? '已核实' : '待核实'}
+            <span className={'badge ' + (platform.certified ? 'ok' : 'todo')}>
+              {platform.certified ? platform.certifications[0] : '待核实'}
             </span>
           </h3>
           {platform.limits && <p>{platform.limits}</p>}
@@ -43,11 +43,9 @@ export default function PlatformGrid({ models, platformProfiles }) {
               </a>
             </div>
           )}
-          <div className='lim'>
-            {platform.verified && platform.verifiedAt
-              ? `核实于 ${platform.verifiedAt}`
-              : '待核实'}
-          </div>
+          {platform.certified && platform.verifiedAt && (
+            <div className='lim'>{`核实于 ${platform.verifiedAt}`}</div>
+          )}
           <div className='pcount'>{platform.count} 个模型</div>
         </div>
       ))}

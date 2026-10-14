@@ -273,8 +273,9 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(screen.getAllByTestId('ft-platform')).toHaveLength(
       platformCards(models).length
     )
-    expect(screen.getAllByText('已核实').length).toBeGreaterThan(0)
     expect(screen.getAllByText('待核实').length).toBeGreaterThan(0)
+    // 未配置「平台认证」标签时，不再出现任何「已认证」徽标
+    expect(screen.queryByText('平台认证')).toBeNull()
 
     // 阶段占位文案不得回归
     expect(screen.queryByText(/阶段/)).toBeNull()
@@ -977,19 +978,38 @@ describe('themes/freetoken lib/modelView 视图层工具', () => {
     expect(models.map(m => m.name)).toEqual(before)
   })
 
-  test('platformCards 只输出可核实字段，全 verified 才标已核实', () => {
+  test('platformCards 只输出可核实字段：收录数/核实日期照旧，认证标签驱动徽标', () => {
+    // 不传平台档案：无认证标签 → 一律非 certified，但实测计数照旧输出
     const cards = platformCards(models)
     expect(cards.map(c => c.name)).toEqual(['Groq Cloud', 'OpenRouter', 'GitHub Models'])
     const openrouter = cards.find(c => c.name === 'OpenRouter')
     expect(openrouter.count).toBe(2)
     expect(openrouter.verifiedCount).toBe(2)
-    expect(openrouter.verified).toBe(true)
     expect(openrouter.verifiedAt).toBe('2026-09-09')
+    expect(openrouter.certified).toBe(false)
+    expect(openrouter.verified).toBe(false)
+    expect(openrouter.certifications).toEqual([])
     const groq = cards.find(c => c.name === 'Groq Cloud')
     expect(groq.count).toBe(2)
     expect(groq.verifiedCount).toBe(1)
-    expect(groq.verified).toBe(false) // 只要有一条未核实就不标已核实
+    expect(groq.certified).toBe(false)
     expect(platformCards(null)).toEqual([])
+  })
+
+  test('platformCards 徽标由平台档案「平台认证」标签驱动（不再依赖模型行状态）', () => {
+    const profiles = [
+      { name: 'OpenRouter', certifications: ['平台认证'] },
+      { name: 'Groq Cloud', 平台认证: '平台认证' }, // 主库原始键 + 逗号字符串
+      { name: 'GitHub Models', certifications: ['__NO__', '  ', '平台认证'] }
+    ]
+    const cards = platformCards(models, profiles)
+    const byName = Object.fromEntries(cards.map(c => [c.name, c]))
+    expect(byName['OpenRouter'].certified).toBe(true)
+    expect(byName['OpenRouter'].certifications).toEqual(['平台认证'])
+    expect(byName['Groq Cloud'].certified).toBe(true)
+    // 坏值/空白被丢弃，只留有效标签
+    expect(byName['GitHub Models'].certifications).toEqual(['平台认证'])
+    expect(platformCards(models, profiles).every(c => c.certified)).toBe(true)
   })
 
   test('daysFrom / staleTitle 与原设计同口径', () => {
@@ -1118,7 +1138,8 @@ describe('themes/freetoken 方案A：平台档案 join（平台/模型解耦）'
       供应商简介: '新账户送额度',
       免费额度: '新账户 1.5 亿免费代币',
       接入说明: '1. 注册 2. 建 Key',
-      上下文: 128
+      上下文: 128,
+      平台认证: '平台认证'
     },
     {
       title: 'Pkay',
@@ -1136,6 +1157,9 @@ describe('themes/freetoken 方案A：平台档案 join（平台/模型解耦）'
     expect(list.map(p => p.name)).toEqual(['Kiraai', 'Pkay'])
     expect(list[0].baseUrl).toBe('https://kiraai.vn/api/v1')
     expect(list[0].quota).toBe('新账户 1.5 亿免费代币')
+    // 「平台认证」多选标签：逗号字符串 → 去重数组；未配置为 []
+    expect(list[0].certifications).toEqual(['平台认证'])
+    expect(list[1].certifications).toEqual([])
     // 128 → 128K（与渠道行同口径）
     expect(list[0].context).toBe(128 * 1024)
     expect(list[1].context).toBe(12000)

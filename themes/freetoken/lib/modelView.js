@@ -32,6 +32,23 @@ export const BIG_CONTEXT = 131072
 
 const asList = models => (Array.isArray(models) ? models.filter(m => m && typeof m === 'object') : [])
 
+/** 标签字段归一：数组或逗号字符串 → 去空白/去重字符串数组（坏值丢弃） */
+const asStringList = value => {
+  const raw = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(',')
+      : []
+  const out = []
+  for (const item of raw) {
+    if (typeof item !== 'string') continue
+    const s = item.trim()
+    if (!s || s === '__NO__' || out.includes(s)) continue
+    out.push(s)
+  }
+  return out
+}
+
 /** 模型行的列表展示名（name → id → href 兜底，避免排序/筛选读到 undefined） */
 const modelName = m => String(m.name || m.id || m.href || '')
 
@@ -113,10 +130,13 @@ export function filterAndSortModels(models, options = {}) {
  *
  * 方案A：可选传入「平台档案」（type=Platform 行）——
  * 平台档案提供名称/简介/网址；收录数仍由模型行的 ext.platforms 统计。
+ * 徽标文案由平台档案的「平台认证」标签驱动（选中「平台认证」→ 已认证），
+ * 未配置认证的平台一律弱化为「待核实」；不再依赖模型行核实状态自动推算。
  * 未传 profiles 时行为与旧版完全一致（纯模型派生）。
  * @param {Array} models adaptPosts 输出
  * @param {Array} [profiles] 平台档案（normalizePlatformProfiles 输出或主库原始行）
  * @returns {Array<{name: string, count: number, verifiedCount: number, verified: boolean,
+ *                  certified: boolean, certifications: string[],
  *                  verifiedAt: string, limits: string, url: string}>}
  */
 export function platformCards(models, profiles) {
@@ -128,7 +148,15 @@ export function platformCards(models, profiles) {
       if (!name) continue
       const card =
         map.get(name) ||
-        { name, count: 0, verifiedCount: 0, verifiedAt: '', limits: '', url: '' }
+        {
+          name,
+          count: 0,
+          verifiedCount: 0,
+          verifiedAt: '',
+          limits: '',
+          url: '',
+          certifications: []
+        }
       card.count += 1
       if (m.verificationStatus === 'verified') {
         card.verifiedCount += 1
@@ -150,7 +178,15 @@ export function platformCards(models, profiles) {
     if (!name) continue
     const card =
       map.get(name) ||
-      { name, count: 0, verifiedCount: 0, verifiedAt: '', limits: '', url: '' }
+      {
+        name,
+        count: 0,
+        verifiedCount: 0,
+        verifiedAt: '',
+        limits: '',
+        url: '',
+        certifications: []
+      }
     const desc =
       typeof p.desc === 'string' && p.desc.trim()
         ? p.desc.trim()
@@ -165,13 +201,18 @@ export function platformCards(models, profiles) {
           : ''
     if (!card.limits && desc) card.limits = desc
     if (!card.url && url) card.url = url
+    const certifications = asStringList(
+      p.certifications != null ? p.certifications : p['平台认证']
+    )
+    if (certifications.length) card.certifications = certifications
     map.set(name, card)
   }
   return Array.from(map.values())
     .map(card => ({
       ...card,
-      verified:
-        card.count > 0 && card.verifiedCount === card.count
+      // 认证标签驱动展示；未配置认证一律「待核实」（不再用模型行状态反推）。
+      certified: card.certifications.length > 0,
+      verified: card.certifications.length > 0
     }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'en'))
 }
