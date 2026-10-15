@@ -1139,7 +1139,9 @@ const Style = () => (
     }
 
     #theme-freetoken .band {
-      background: var(--bg-alt);
+      /* 与平台详情页（/platform/[platform]）保持同一底色：正文纯白，
+         区块之间靠卡片 hairline 边框区分，而非整块灰底。 */
+      background: var(--bg);
       margin-top: 72px;
       padding: 4px 0 42px;
     }

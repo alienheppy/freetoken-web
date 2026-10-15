@@ -32,35 +32,102 @@ const locales = (function () {
   return langs
 })()
 
-// next dev 时配置可能被多个 worker 各自加载一次，globalThis 无法跨进程去重；用独占文件锁只打印一行。
-;(function printDevCacheHint() {
-  if (process.env.npm_lifecycle_event !== 'dev') return
-  const lockFile = path.join(__dirname, '.next', 'dev-cache-hint.lock')
-  const siblingWindowMs = 15_000 // 同一次 dev 内多 worker；间隔超过则视为新会话，删掉旧锁再提示
+/**
+ * next dev 会话开始时清掉「不会自我失效」的 Notion 派生缓存，
+ * 保证每次 `yarn dev` 都重新拉取最新数据，而不是命中上一次会话的旧结果。
+ *
+ * 只删除无版本的键（global_data_* / site_* / build_static_paths_* / 无版本的
+ * page_block_*），保留 page_block_<id>_<lastEditedDate>：该键带 Notion 最后编辑
+ * 时间，Notion 改过即自然失效，一次会话内仍能省掉重复请求。
+ *
+ * 设 NOTION_DEV_KEEP_CACHE=true 可跳过（复用上次会话数据，起服务更快）。
+ */
+function purgeDerivedNotionCache(dataDir) {
+  if (!fs.existsSync(dataDir)) return { removed: 0, kept: 0 }
+
+  let removed = 0
+  let kept = 0
+  for (const name of fs.readdirSync(dataDir)) {
+    if (!name.endsWith('.json')) continue
+    const file = path.join(dataDir, name)
+    try {
+      const entry = JSON.parse(fs.readFileSync(file, 'utf8'))
+      if (isVersionedPageBlockCacheKey(entry?.key)) {
+        kept++
+        continue
+      }
+    } catch {}
+    try {
+      fs.rmSync(file, { force: true })
+      removed++
+    } catch {}
+  }
+  return { removed, kept }
+}
+
+/** 进程是否仍在运行（用于判断锁文件是否属于「上一次已退出的会话」） */
+function isProcessAlive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (err) {
+    // EPERM：进程存在但无权限探测，同样视为存活
+    return Boolean(err && err.code === 'EPERM')
+  }
+}
+
+/**
+ * 判断本次 dev 会话是否已经清过缓存。
+ * 判据是「锁文件里记录的 pid 是否还活着」，而不是时间窗口：
+ * 停止服务后立刻重启（秒级）也必须重新拉取，不能被时间窗口误判为同一次会话。
+ * 返回 true 表示本次会话是新的（需要清缓存并写锁）。
+ */
+function claimDevCacheSession(lockFile) {
+  try {
+    const raw = fs.readFileSync(lockFile, 'utf8')
+    const parsed = JSON.parse(raw)
+    if (isProcessAlive(Number(parsed?.pid))) return false
+  } catch (_) {
+    /* 锁文件不存在或损坏：视为新会话 */
+  }
   try {
     fs.mkdirSync(path.dirname(lockFile), { recursive: true })
-    if (fs.existsSync(lockFile)) {
-      const age = Date.now() - fs.statSync(lockFile).mtimeMs
-      if (age < siblingWindowMs) {
-        return
-      }
-      try {
-        fs.unlinkSync(lockFile)
-      } catch (err) {
-        if (err && err.code !== 'ENOENT') return
-      }
-    }
+    fs.writeFileSync(
+      lockFile,
+      JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() })
+    )
+    return true
   } catch (_) {
+    return false
+  }
+}
+
+// next dev 时配置会被主进程与各 worker 各自加载一次，globalThis 无法跨进程去重；
+// 用锁文件把「清缓存 + 打印提示」收敛到本次会话的第一个加载者。
+;(function prepareDevNotionCache() {
+  if (process.env.npm_lifecycle_event !== 'dev') return
+
+  const cacheRoot = process.env.NOTION_NEXT_NOTION_CACHE_DIR
+    ? path.resolve(process.env.NOTION_NEXT_NOTION_CACHE_DIR)
+    : path.join(__dirname, '.next', 'cache', 'notion')
+  const lockFile = path.join(cacheRoot, 'dev-cache-session.lock')
+
+  if (!claimDevCacheSession(lockFile)) return
+
+  if (process.env.NOTION_DEV_KEEP_CACHE === 'true') {
+    console.log(
+      '[NotionNext] Dev cache reused (NOTION_DEV_KEEP_CACHE=true)；Notion 的改动不会生效，需要最新数据请去掉该变量后重启'
+    )
     return
   }
-  try {
-    fs.closeSync(fs.openSync(lockFile, 'wx'))
-  } catch (e) {
-    if (e && e.code === 'EEXIST') return
-    return
-  }
+
+  const { removed, kept } = purgeDerivedNotionCache(path.join(cacheRoot, 'data'))
   console.log(
-    '[NotionNext] Dev cache ON (ENABLE_CACHE=true); live Notion data → ENABLE_CACHE=false in .env.local'
+    `[NotionNext] Dev session cache reset: purged ${removed} derived entries, kept ${kept} versioned page blocks → 本次启动会重新拉取 Notion 最新数据`
+  )
+  console.log(
+    '[NotionNext] Dev cache ON (ENABLE_CACHE=true)；会话内命中缓存加速，ENABLE_CACHE=false 可完全关闭缓存'
   )
 })()
 
