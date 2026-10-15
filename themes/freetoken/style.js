@@ -812,6 +812,41 @@ const Style = () => (
       border-bottom: 1px solid var(--hairline);
     }
 
+    /* 表头即排序控件：沿用表头字号/颜色，去掉按钮默认外观，
+       箭头常驻占位（未排序显示 ↕），避免切换列时表头宽度跳动。 */
+    #theme-freetoken .psort {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--faint);
+      background: none;
+      border: 0;
+      cursor: pointer;
+      text-align: left;
+      transition: color 0.15s ease;
+    }
+
+    #theme-freetoken .psort:hover {
+      color: var(--txt);
+    }
+
+    #theme-freetoken .psort.on {
+      color: var(--txt);
+      font-weight: 600;
+    }
+
+    #theme-freetoken .psort .psort-arrow {
+      font-size: 9px;
+      line-height: 1;
+    }
+
+    #theme-freetoken .phead > .psort:last-child {
+      /* 末列（模型提供商）表头与下方数字同为居中 */
+      justify-self: center;
+    }
+
     #theme-freetoken .prow {
       color: inherit;
       transition: background 0.15s ease;
@@ -863,15 +898,14 @@ const Style = () => (
       text-align: center;
     }
 
-    /* 「模型提供商」列：表头与数字同为居中，保持与数值对齐 */
-    #theme-freetoken .phead > span:last-child {
-      text-align: center;
-    }
-
-    /* 移动端：表格降级为堆叠卡片，用 data-label 前缀标注列含义 */
+    /* 移动端：表格降级为堆叠卡片，用 data-label 前缀标注列含义；
+       表头不再隐藏，改成一行可换行的排序按钮，保证手机上也能排序。 */
     @media (max-width: 760px) {
       #theme-freetoken .phead {
-        display: none;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        padding: 12px 20px;
       }
 
       #theme-freetoken .prow {

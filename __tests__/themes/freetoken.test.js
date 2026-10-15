@@ -81,7 +81,9 @@ import {
   platformCards,
   platformHref,
   providerOptions,
-  staleTitle
+  sortModelsBy,
+  staleTitle,
+  togglePlatformSort
 } from '@/themes/freetoken/lib/modelView'
 import {
   applyPlatformProfiles,
@@ -422,6 +424,71 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(paginate(null, 1, 2)).toEqual({ items: [], page: 1, totalPage: 0 })
   })
 
+  test('sortModelsBy：按名称/上下文/能力数/提供商数排序，同值按名称稳定收尾', () => {
+    // 上下文 8192 / 131072 / 32768；能力数 1 / 2 / 0；提供商数 1 / 2 / 2
+    const models = adaptPosts(mockPosts)
+    const names = list => list.map(m => m.name)
+    expect(names(sortModelsBy(models, 'name', 'asc'))).toEqual([
+      'Claude 3',
+      'GPT-4o',
+      'Legacy Model'
+    ])
+    expect(names(sortModelsBy(models, 'name', 'desc'))).toEqual([
+      'Legacy Model',
+      'GPT-4o',
+      'Claude 3'
+    ])
+    expect(names(sortModelsBy(models, 'context', 'desc'))).toEqual([
+      'GPT-4o',
+      'Legacy Model',
+      'Claude 3'
+    ])
+    expect(names(sortModelsBy(models, 'context', 'asc'))).toEqual([
+      'Claude 3',
+      'Legacy Model',
+      'GPT-4o'
+    ])
+    expect(names(sortModelsBy(models, 'caps', 'desc'))).toEqual([
+      'GPT-4o',
+      'Claude 3',
+      'Legacy Model'
+    ])
+    // 提供商数同为 2 → 名称升序收尾（GPT-4o 在 Legacy Model 之前）
+    expect(names(sortModelsBy(models, 'providers', 'desc'))).toEqual([
+      'GPT-4o',
+      'Legacy Model',
+      'Claude 3'
+    ])
+    // 未知列 / 坏输入：返回原顺序副本，不修改入参
+    expect(names(sortModelsBy(models, 'nope', 'asc'))).toEqual(names(models))
+    expect(sortModelsBy(null, 'name', 'asc')).toEqual([])
+    expect(names(models)).toEqual(['GPT-4o', 'Claude 3', 'Legacy Model'])
+  })
+
+  test('togglePlatformSort：首击方向 → 反向 → 恢复默认；换列则切到该列首击方向', () => {
+    // 名称列首击升序（A→Z），再点降序，第三下回到默认（null）
+    const byName = togglePlatformSort(null, 'name')
+    expect(byName).toEqual({ key: 'name', dir: 'asc' })
+    const byNameDesc = togglePlatformSort(byName, 'name')
+    expect(byNameDesc).toEqual({ key: 'name', dir: 'desc' })
+    expect(togglePlatformSort(byNameDesc, 'name')).toBeNull()
+    // 数值列首击降序（先看最大值）
+    const byCtx = togglePlatformSort(null, 'context')
+    expect(byCtx).toEqual({ key: 'context', dir: 'desc' })
+    expect(togglePlatformSort(byCtx, 'context')).toEqual({ key: 'context', dir: 'asc' })
+    // 换列：直接采用新列的首击方向，不沿用上一列方向
+    expect(togglePlatformSort({ key: 'name', dir: 'desc' }, 'providers')).toEqual({
+      key: 'providers',
+      dir: 'desc'
+    })
+    expect(togglePlatformSort({ key: 'context', dir: 'desc' }, 'caps')).toEqual({
+      key: 'caps',
+      dir: 'desc'
+    })
+    // 未知列 → 保持默认
+    expect(togglePlatformSort({ key: 'name', dir: 'asc' }, 'nope')).toBeNull()
+  })
+
   test('模型库翻页：超过一页时出现翻页控件，筛选变化后回到第 1 页', () => {
     const many = Array.from({ length: 11 }, (_, i) => ({
       id: `m${i}`,
@@ -617,9 +684,55 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(screen.getByText('该平台暂未收录免费模型。')).toHaveClass('empty')
     // 平台档案未填「接入说明」时整个区块不渲染，不留空标题
     expect(screen.queryByTestId('ft-platform-guide')).toBeNull()
+    // 无模型时表头（排序控件）整体不渲染，避免出现空表头
+    expect(screen.queryByTestId('ft-platform-sort-name')).toBeNull()
     unmount2()
     const { container: empty } = render(<LayoutPlatform platform={null} posts={[]} />)
     expect(empty.firstChild).toBeNull()
+  })
+
+  test('平台详情页表头可排序：点列名切换升降序，第三下回到默认顺序', () => {
+    render(<LayoutPlatform platform={{ name: 'OpenRouter' }} posts={mockPosts} />)
+    const table = screen.getByTestId('ft-platform-models')
+    const rowNames = () =>
+      within(table).getAllByTestId('ft-platform-model').map(el => el.querySelector('.pmname').textContent)
+
+    // 默认顺序 = 传入顺序（与首页模型库「默认」排序同义）
+    expect(rowNames()).toEqual(['GPT-4o', 'Claude 3', 'Legacy Model'])
+
+    // 「模型」列：首击 A→Z，再点 Z→A，第三下恢复默认
+    const nameBtn = within(table).getByTestId('ft-platform-sort-name')
+    expect(nameBtn).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(nameBtn)
+    expect(rowNames()).toEqual(['Claude 3', 'GPT-4o', 'Legacy Model'])
+    expect(nameBtn).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(nameBtn)
+    expect(rowNames()).toEqual(['Legacy Model', 'GPT-4o', 'Claude 3'])
+    fireEvent.click(nameBtn)
+    expect(rowNames()).toEqual(['GPT-4o', 'Claude 3', 'Legacy Model'])
+    expect(nameBtn).toHaveAttribute('aria-pressed', 'false')
+
+    // 「上下文」列：首击先看最大值（降序）
+    const ctxBtn = within(table).getByTestId('ft-platform-sort-context')
+    fireEvent.click(ctxBtn)
+    expect(rowNames()).toEqual(['GPT-4o', 'Legacy Model', 'Claude 3'])
+    expect(ctxBtn).toHaveAttribute('aria-pressed', 'true')
+    // 换列后上一列的箭头/高亮不残留
+    expect(nameBtn).toHaveAttribute('aria-pressed', 'false')
+
+    // 「能力」列：能力数降序（GPT-4o 视觉+工具 2 项 > Claude 3 推理 1 项 > Legacy 0 项）
+    fireEvent.click(within(table).getByTestId('ft-platform-sort-caps'))
+    expect(rowNames()).toEqual(['GPT-4o', 'Claude 3', 'Legacy Model'])
+
+    // 「模型提供商」列：提供商数降序，同值按名称收尾
+    fireEvent.click(within(table).getByTestId('ft-platform-sort-providers'))
+    expect(rowNames()).toEqual(['GPT-4o', 'Legacy Model', 'Claude 3'])
+
+    // 排序只影响渲染顺序，行本身仍是指向模型详情页的链接
+    expect(within(table).getAllByTestId('ft-platform-model')[0]).toHaveAttribute(
+      'href',
+      '/gpt-4o'
+    )
   })
 
   test('LayoutPostList 渲染分类标题与卡片网格，空列表有兜底文案', () => {

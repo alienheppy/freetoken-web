@@ -24,6 +24,17 @@ export const SORTS = [
   { key: 'az', label: 'A → Z' }
 ]
 
+/**
+ * 平台详情页「免费模型」表头的可排序列（顺序与表格列一一对应）。
+ * first：首次点击该列时的方向——数值列先看最大值（降序），名称列先看 A→Z（升序）。
+ */
+export const PLATFORM_SORTS = [
+  { key: 'name', label: '模型', first: 'asc' },
+  { key: 'context', label: '上下文', first: 'desc' },
+  { key: 'caps', label: '能力', first: 'desc' },
+  { key: 'providers', label: '模型提供商', first: 'desc' }
+]
+
 /** 供应商筛选的「全部」项（原设计字面量） */
 export const ALL_PROVIDERS = '全部'
 
@@ -106,6 +117,17 @@ function providerCount(model) {
   return Array.isArray(model?.platforms) ? model.platforms.length : 0
 }
 
+/** 能力标签数量（视觉 / 工具 / 推理），用于「能力」列表头排序 */
+function capabilityCount(model) {
+  return ['vision', 'tools', 'reasoning'].reduce(
+    (n, key) => n + (model?.[key] ? 1 : 0),
+    0
+  )
+}
+
+/** 数值归一：非有限值按 0（排序时缺失值排在最后而不是当成最大/最小乱序） */
+const toSortNumber = v => (Number.isFinite(v) ? v : 0)
+
 /**
  * 筛选 + 排序（纯函数，行为对齐原设计 page.jsx）
  * @param {Array} models adaptPosts 输出
@@ -168,6 +190,47 @@ export function paginate(items, page, perPage) {
   const current = Math.min(Math.max(Number(page) || 1, 1), totalPage)
   const start = (current - 1) * size
   return { items: list.slice(start, start + size), page: current, totalPage }
+}
+
+/**
+ * 表头排序（平台详情页「免费模型」表格，纯函数）。
+ * 同值一律按名称升序收尾，保证排序结果稳定、不会随渲染顺序抖动。
+ * @param {Array} models adaptPosts 输出
+ * @param {'name'|'context'|'caps'|'providers'} key 列标识
+ * @param {'asc'|'desc'} dir 方向
+ * @returns {Array} 新数组；key 未知 → 原顺序副本（不修改入参）
+ */
+export function sortModelsBy(models, key, dir) {
+  const list = asList(models)
+  const compare = {
+    name: (a, b) => modelName(a).localeCompare(modelName(b), 'en'),
+    context: (a, b) => toSortNumber(a.context) - toSortNumber(b.context),
+    caps: (a, b) => capabilityCount(a) - capabilityCount(b),
+    providers: (a, b) => providerCount(a) - providerCount(b)
+  }[key]
+  if (!compare) return list.slice()
+  const desc = dir === 'desc'
+  return [...list].sort((a, b) => {
+    const diff = compare(a, b)
+    if (diff !== 0) return desc ? -diff : diff
+    return modelName(a).localeCompare(modelName(b), 'en')
+  })
+}
+
+/**
+ * 表头排序状态机：点同一列按 首击方向 → 反向 → 恢复默认（原顺序）循环；
+ * 点另一列则切到该列并采用其首击方向。
+ * @param {{key: string, dir: string}|null} current 当前排序状态
+ * @param {string} key 被点击的列标识
+ * @returns {{key: string, dir: string}|null} 新的排序状态（null = 默认顺序）
+ */
+export function togglePlatformSort(current, key) {
+  const column = PLATFORM_SORTS.find(c => c.key === key)
+  if (!column) return null
+  const other = column.first === 'asc' ? 'desc' : 'asc'
+  if (!current || current.key !== key) return { key, dir: column.first }
+  if (current.dir === column.first) return { key, dir: other }
+  return null
 }
 
 /**

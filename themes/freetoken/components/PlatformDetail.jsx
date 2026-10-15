@@ -7,16 +7,26 @@ import { siteConfig } from '@/lib/config'
 
 import CONFIG from '../config'
 import { adaptPosts, fmtCtx } from '../lib/adaptModel'
+import { PLATFORM_SORTS, sortModelsBy, togglePlatformSort } from '../lib/modelView'
 
 /**
  * 平台详情页：某提供商（Notion type=Platform）的免费模型列表。
  * 结构：返回（回首页平台区块）→ 平台名 + 认证徽标 → 元信息 → 平台简介 → 免费模型表格 → 接入说明。
  * 模型用表格列表呈现（而非卡片网格）：一眼即可按「上下文 / 能力 / 提供商」横向对比，
  * 提供商数量再多也不会撑爆版面。
+ * 表头即排序控件：点列名在「首击方向 → 反向 → 默认顺序」间循环，与首页模型库的排序语义一致。
  * 模型列表由 pages/platform/[platform] 传入（已按 ext.platforms 命中该平台过滤）。
  */
 export default function PlatformDetail({ platform, posts }) {
-  const models = useMemo(() => adaptPosts(posts), [posts])
+  const adapted = useMemo(() => adaptPosts(posts), [posts])
+  // null = 默认顺序（保持 Notion 后台的录入顺序，与首页「默认」排序同义）
+  const [sort, setSort] = useState(
+    /** @type {{key: string, dir: 'asc'|'desc'}|null} */ (null)
+  )
+  const models = useMemo(
+    () => (sort ? sortModelsBy(adapted, sort.key, sort.dir) : adapted),
+    [adapted, sort]
+  )
   const [copied, setCopied] = useState(false)
 
   if (!platform) return null
@@ -94,11 +104,28 @@ export default function PlatformDetail({ platform, posts }) {
         <h2>{siteConfig('FREETOKEN_PLATFORM_MODELS_TITLE', null, CONFIG)}</h2>
         <div className='ptable' data-testid='ft-platform-models'>
           {models.length > 0 && (
-            <div className='phead' aria-hidden='true'>
-              <span>模型</span>
-              <span>上下文</span>
-              <span>能力</span>
-              <span>模型提供商</span>
+            <div className='phead'>
+              {PLATFORM_SORTS.map(column => (
+                <button
+                  key={column.key}
+                  type='button'
+                  className={'psort' + (sort?.key === column.key ? ' on' : '')}
+                  data-testid={`ft-platform-sort-${column.key}`}
+                  // aria-pressed 表达「该列正在排序」，方向写进无障碍名称
+                  aria-pressed={sort?.key === column.key}
+                  aria-label={
+                    sort?.key === column.key
+                      ? `${column.label}，按${sort.dir === 'asc' ? '升序' : '降序'}排列，点击切换`
+                      : `${column.label}，点击排序`
+                  }
+                  title='点击切换排序'
+                  onClick={() => setSort(current => togglePlatformSort(current, column.key))}>
+                  <span>{column.label}</span>
+                  <span className='psort-arrow' aria-hidden='true'>
+                    {sort?.key === column.key ? (sort.dir === 'asc' ? '▲' : '▼') : '↕'}
+                  </span>
+                </button>
+              ))}
             </div>
           )}
           {models.map(model => (
