@@ -1081,7 +1081,8 @@ const Style = () => (
       font-size: 16px;
       line-height: 1.75;
       color: var(--sub);
-      max-width: 760px;
+      /* 与下方免费模型表格使用同一内容宽度，简介左右边缘对齐 */
+      width: 100%;
       white-space: pre-line;
     }
 
