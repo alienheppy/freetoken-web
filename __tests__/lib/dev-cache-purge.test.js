@@ -12,13 +12,15 @@ import path from 'path'
  *
  * 这里用临时缓存目录直接加载真实 next.config.js，锁定两条不变量：
  *   1. 无版本键（global_data_* / site_* / build_static_paths_* / 无版本 page_block_*）被删除；
- *   2. page_block_<id>_<lastEditedDate> 保留（该键带 Notion 最后编辑时间，自行失效）。
+ *   2. page_block_<id>_<lastEditedDate> 只有带 TTL（expireTime）时保留 ——
+ *      版本号只覆盖「页面本身被编辑」，渠道子表增删行不会改动父页面 lastEditedDate，
+ *      没有 TTL 的历史条目可能永久陈旧，必须一并丢弃。
  */
 
-function writeEntry(dataDir, fileName, key) {
+function writeEntry(dataDir, fileName, key, expireTime = null) {
   fs.writeFileSync(
     path.join(dataDir, fileName),
-    JSON.stringify({ key, expireTime: null, updatedAt: Date.now(), value: { ok: true } })
+    JSON.stringify({ key, expireTime, updatedAt: Date.now(), value: { ok: true } })
   )
 }
 
@@ -58,17 +60,20 @@ describe('next.config dev 会话缓存清理', () => {
     }
   })
 
-  it('删除无版本派生缓存，保留带 lastEditedDate 的 page block', () => {
+  it('删除无版本派生缓存与无 TTL 的历史 page block，保留带 TTL 的 page block', () => {
     const { root, dataDir } = makeCacheRoot()
     roots.push(root)
 
-    writeEntry(dataDir, 'kept-1.json', 'page_block_3fa25702-37f4-81c9-b95d-df991bfbb2d7_1792030627895')
-    writeEntry(dataDir, 'kept-2.json', 'page_block_3fa25702-37f4-8171-8289-d3f9c60024d5_1792030625511')
+    const future = Date.now() + 300 * 1000
+    writeEntry(dataDir, 'kept-1.json', 'page_block_3fa25702-37f4-81c9-b95d-df991bfbb2d7_1792030627895', future)
+    writeEntry(dataDir, 'kept-2.json', 'page_block_3fa25702-37f4-8171-8289-d3f9c60024d5_1792030625511', future)
     writeEntry(dataDir, 'global-default.json', 'global_data_default_6172570237f48209994f01fd7bd22158')
     writeEntry(dataDir, 'global-zh.json', 'global_data_zh-CN_6172570237f48209994f01fd7bd22158')
     writeEntry(dataDir, 'site.json', 'site_6172570237f48209994f01fd7bd22158')
     writeEntry(dataDir, 'paths.json', 'build_static_paths_all_pages_default_6172570237f48209994f01fd7bd22158')
     writeEntry(dataDir, 'bare-block.json', 'page_block_fd525702-37f4-82a1-8318-8167f0e34b17')
+    // 历史遗留：带版本号但没有过期时间（实测会永久陈旧）
+    writeEntry(dataDir, 'legacy-block.json', 'page_block_fd525702-37f4-82a1-8318-8167f0e34b17_1792030627895')
 
     loadNextConfigAsDev(root)
 
@@ -79,7 +84,12 @@ describe('next.config dev 会话缓存清理', () => {
     const { root, dataDir } = makeCacheRoot()
     roots.push(root)
 
-    writeEntry(dataDir, 'good.json', 'page_block_abc12345-0000-1111-2222-333344445555_1792030627895')
+    writeEntry(
+      dataDir,
+      'good.json',
+      'page_block_abc12345-0000-1111-2222-333344445555_1792030627895',
+      Date.now() + 300 * 1000
+    )
     fs.writeFileSync(path.join(dataDir, 'broken.json'), '{ not json')
 
     loadNextConfigAsDev(root)

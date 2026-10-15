@@ -33,12 +33,16 @@ const locales = (function () {
 })()
 
 /**
- * next dev 会话开始时清掉「不会自我失效」的 Notion 派生缓存，
+ * next dev 会话开始时清掉不可靠的 Notion 派生缓存，
  * 保证每次 `yarn dev` 都重新拉取最新数据，而不是命中上一次会话的旧结果。
  *
- * 只删除无版本的键（global_data_* / site_* / build_static_paths_* / 无版本的
- * page_block_*），保留 page_block_<id>_<lastEditedDate>：该键带 Notion 最后编辑
- * 时间，Notion 改过即自然失效，一次会话内仍能省掉重复请求。
+ * 只保留「带明确过期时间的有版本 page block」（page_block_<id>_<lastEditedDate>，
+ * 且 expireTime 由 NOTION_DATA_CACHE_TTL_SECOND 写入），其余一律删除：
+ *   - global_data_* / site_* / build_static_paths_*：键不带版本；
+ *   - 无版本的 page_block_<id>（根页面等）；
+ *   - 无过期时间的 page_block_*：历史遗留条目。版本号只覆盖「页面本身被编辑」，
+ *     而模型页内嵌的渠道子表增删行不会改动父页面 lastEditedDate，这类条目
+ *     可能永久陈旧（实测线上曾长期用 10-14 的旧渠道快照渲染「模型提供商」）。
  *
  * 设 NOTION_DEV_KEEP_CACHE=true 可跳过（复用上次会话数据，起服务更快）。
  */
@@ -52,7 +56,7 @@ function purgeDerivedNotionCache(dataDir) {
     const file = path.join(dataDir, name)
     try {
       const entry = JSON.parse(fs.readFileSync(file, 'utf8'))
-      if (isVersionedPageBlockCacheKey(entry?.key)) {
+      if (isVersionedPageBlockCacheKey(entry?.key) && hasExplicitExpiry(entry)) {
         kept++
         continue
       }
@@ -63,6 +67,19 @@ function purgeDerivedNotionCache(dataDir) {
     } catch {}
   }
   return { removed, kept }
+}
+
+/**
+ * 条目是否带明确的过期时间。
+ *
+ * 版本号（lastEditedDate）不足以判定 page block 是否仍是最新：渠道子表的行增删
+ * 不会改动父页面。只有写入时带了 TTL 的条目才允许跨会话复用，否则视为遗留条目。
+ * @param {{expireTime?: number|null}} entry 缓存条目
+ * @returns {boolean} 是否带未来/正数过期时间
+ */
+function hasExplicitExpiry(entry) {
+  const t = Number(entry?.expireTime)
+  return Number.isFinite(t) && t > 0
 }
 
 /** 进程是否仍在运行（用于判断锁文件是否属于「上一次已退出的会话」） */
@@ -201,6 +218,14 @@ function isVersionedPageBlockCacheKey(key) {
   return /^page_block_.+_\d{10,}$/.test(String(key || ''))
 }
 
+/**
+ * 构建期裁剪持久化缓存：只保留「带过期时间的有版本 page block」。
+ *
+ * 与 dev 会话清理同一判据（见 purgeDerivedNotionCache / hasExplicitExpiry）：
+ * 版本号无法感知渠道子表的行增删，只有带 TTL 的条目才敢跨构建复用；
+ * 无过期时间的历史条目会在这次构建里被丢弃并重新拉取，避免部署出来的快照长期陈旧。
+ * @param {string} dataDir 缓存 data 目录
+ */
 function pruneTransientNotionDataCache(dataDir) {
   if (!fs.existsSync(dataDir)) {
     return
@@ -214,7 +239,7 @@ function pruneTransientNotionDataCache(dataDir) {
     const file = path.join(dataDir, name)
     try {
       const entry = JSON.parse(fs.readFileSync(file, 'utf8'))
-      if (isVersionedPageBlockCacheKey(entry?.key)) {
+      if (isVersionedPageBlockCacheKey(entry?.key) && hasExplicitExpiry(entry)) {
         kept++
         continue
       }
