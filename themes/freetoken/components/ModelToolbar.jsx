@@ -9,9 +9,11 @@ import {
   FILTERS,
   SORTS,
   filterAndSortModels,
+  paginate,
   providerOptions
 } from '../lib/modelView'
 import ModelCard from './ModelCard'
+import Pagination from './Pagination'
 
 /**
  * 首页模型库工具栏 + 卡片网格（原设计 page.jsx 的 toolbar / provbar / grid / empty）
@@ -26,6 +28,8 @@ export default function ModelToolbar({ models, today }) {
   const [filter, setFilter] = useState('all')
   const [prov, setProv] = useState(ALL_PROVIDERS)
   const [sort, setSort] = useState('default')
+  const [page, setPage] = useState(1)
+  const [sortOpen, setSortOpen] = useState(false)
 
   const list = useMemo(
     () => filterAndSortModels(models, { kw, filter, provider: prov, sort }),
@@ -33,6 +37,20 @@ export default function ModelToolbar({ models, today }) {
   )
   const providers = useMemo(() => providerOptions(models), [models])
   const sortLabel = (SORTS.find(s => s.key === sort) || SORTS[0]).label
+
+  const perPage = Number(
+    siteConfig('FREETOKEN_MODELS_PER_PAGE', 9, CONFIG)
+  )
+  const paged = useMemo(
+    () => paginate(list, page, perPage),
+    [list, page, perPage]
+  )
+
+  // 任一筛选条件变化后回到第 1 页，避免停留在越界空页
+  const resetTo = setter => value => {
+    setter(value)
+    setPage(1)
+  }
 
   return (
     <>
@@ -43,7 +61,7 @@ export default function ModelToolbar({ models, today }) {
           aria-label={siteConfig('FREETOKEN_SEARCH_PLACEHOLDER', null, CONFIG)}
           placeholder={siteConfig('FREETOKEN_SEARCH_PLACEHOLDER', null, CONFIG)}
           value={kw}
-          onChange={e => setKw(e.target.value)}
+          onChange={e => resetTo(setKw)(e.target.value)}
         />
         {FILTERS.map(f => (
           <button
@@ -51,16 +69,20 @@ export default function ModelToolbar({ models, today }) {
             type='button'
             className={'chip' + (filter === f.key ? ' on' : '')}
             aria-pressed={filter === f.key}
-            onClick={() => setFilter(f.key)}>
+            onClick={() => resetTo(setFilter)(f.key)}>
             {f.label}
           </button>
         ))}
-        <div className='sortdd'>
+        <div
+          className={'sortdd' + (sortOpen ? ' open' : '')}
+          onMouseEnter={() => setSortOpen(true)}
+          onMouseLeave={() => setSortOpen(false)}>
           <button
             type='button'
             className='sortbtn'
             aria-haspopup='true'
-            aria-expanded='false'>
+            aria-expanded={sortOpen}
+            onClick={() => setSortOpen(v => !v)}>
             {sortLabel} <span className='caret'>▾</span>
           </button>
           <div className='sortmenu' data-testid='ft-sortmenu'>
@@ -69,7 +91,13 @@ export default function ModelToolbar({ models, today }) {
                 key={s.key}
                 type='button'
                 className={sort === s.key ? 'on' : ''}
-                onClick={() => setSort(s.key)}>
+                onClick={e => {
+                  resetTo(setSort)(s.key)
+                  // 选中即收起：显式关闭并移走焦点，避免鼠标仍停在菜单上
+                  // 时菜单继续挂着不收回。
+                  setSortOpen(false)
+                  e.currentTarget.blur()
+                }}>
                 {s.label}
               </button>
             ))}
@@ -87,7 +115,7 @@ export default function ModelToolbar({ models, today }) {
               type='button'
               className={'chip' + (prov === p ? ' on' : '')}
               aria-pressed={prov === p}
-              onClick={() => setProv(p)}>
+              onClick={() => resetTo(setProv)(p)}>
               {p}
             </button>
           ))}
@@ -95,11 +123,18 @@ export default function ModelToolbar({ models, today }) {
       )}
 
       <div className='grid' data-testid='ft-model-grid'>
-        {list.map(model => (
+        {paged.items.map(model => (
           <ModelCard key={model.id || model.href} model={model} today={today} />
         ))}
         {list.length === 0 && <div className='empty'>没有符合条件的模型。</div>}
       </div>
+
+      {/* 翻页：仅当筛选结果超过一页时出现 */}
+      <Pagination
+        page={paged.page}
+        totalPage={paged.totalPage}
+        onPageChange={setPage}
+      />
     </>
   )
 }

@@ -74,8 +74,12 @@ export async function getStaticProps(req) {
     'page',
     props?.NOTION_CONFIG
   )
-  if (POST_LIST_STYLE === 'scroll') {
-    // 滚动列表默认给前端返回所有数据
+  // freetoken 主题的模型库在前端做分页（搜索/筛选/排序 + 翻页），需要全量模型；
+  // 且平台一览的「N 个模型」由模型行派生，截断会导致统计偏小。其余主题行为不变。
+  const isFreetokenTheme =
+    siteConfig('THEME', BLOG.THEME, props?.NOTION_CONFIG) === 'freetoken'
+  if (POST_LIST_STYLE === 'scroll' || isFreetokenTheme) {
+    // 滚动列表 / freetoken：默认给前端返回所有数据
   } else if (POST_LIST_STYLE === 'page') {
     props.posts = props.posts?.slice(
       0,

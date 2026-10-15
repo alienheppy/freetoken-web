@@ -77,6 +77,7 @@ import {
   latestVerifiedAt,
   maxContext,
   offerRows,
+  paginate,
   platformCards,
   platformHref,
   providerOptions,
@@ -90,6 +91,7 @@ import {
   normalizePlatformProfiles,
   stripEmbeddedTables
 } from '@/themes/freetoken/lib/offerBlocks'
+import ModelToolbar from '@/themes/freetoken/components/ModelToolbar'
 
 /** 首页/列表用的已发布模型（含真实 ext 字段） */
 const mockPosts = [
@@ -359,9 +361,119 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     fireEvent.click(within(screen.getByTestId('ft-sortmenu')).getByText('A → Z'))
     expect(cardNames()).toEqual(['Claude 3', 'GPT-4o', 'Legacy Model'])
 
-    // 排序：供应商最多（平台收录数之和降序）
+    // 排序：供应商最多（按卡片「模型提供商 N」降序）
     fireEvent.click(within(screen.getByTestId('ft-sortmenu')).getByText('供应商最多'))
     expect(cardNames()).toEqual(['Legacy Model', 'GPT-4o', 'Claude 3'])
+  })
+
+  test('排序菜单：选中后收起（不再挂在页面上），再次开启可切换', () => {
+    const { container } = render(<LayoutIndex posts={mockPosts} />)
+    const sortdd = container.querySelector('.sortdd')
+    const sortbtn = container.querySelector('.sortbtn')
+    expect(sortdd).not.toHaveClass('open')
+
+    // 悬停展开
+    fireEvent.mouseEnter(sortdd)
+    expect(sortdd).toHaveClass('open')
+
+    // 选中一项后立即收起
+    fireEvent.click(within(screen.getByTestId('ft-sortmenu')).getByText('A → Z'))
+    expect(sortdd).not.toHaveClass('open')
+    expect(sortbtn).toHaveAttribute('aria-expanded', 'false')
+
+    // 点击排序按钮可再次展开
+    fireEvent.click(sortbtn)
+    expect(sortdd).toHaveClass('open')
+    expect(sortbtn).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  test('「供应商最多」按卡片显示的提供商数量降序（不再纯按平台热度分）', () => {
+    // 三个模型：providers 数分别 1 / 3 / 2；平台集合刻意与「热度分」错位，
+    // 用来锁定排序键必须是卡片上的「模型提供商 N」，而非各平台收录数之和。
+    const posts = [
+      { id: 'a', title: 'One', href: '/a', ext: { platforms: ['P1'] } },
+      { id: 'b', title: 'Three', href: '/b', ext: { platforms: ['P1', 'P2', 'P3'] } },
+      { id: 'c', title: 'Two', href: '/c', ext: { platforms: ['P1', 'P2'] } }
+    ]
+    const models = adaptPosts(posts)
+    expect(
+      filterAndSortModels(models, { sort: 'providers' }).map(m => m.name)
+    ).toEqual(['Three', 'Two', 'One'])
+  })
+
+  test('paginate：切片、页码夹取、边界与不分页', () => {
+    const items = ['a', 'b', 'c', 'd', 'e']
+    expect(paginate(items, 1, 2)).toEqual({ items: ['a', 'b'], page: 1, totalPage: 3 })
+    expect(paginate(items, 3, 2)).toEqual({ items: ['e'], page: 3, totalPage: 3 })
+    // 页码越界 → 夹到最后一页（筛选后残留大页码不会出现空页）
+    expect(paginate(items, 99, 2).page).toBe(3)
+    expect(paginate(items, 99, 2).items).toEqual(['e'])
+    // 非正页码 → 第 1 页
+    expect(paginate(items, 0, 2).page).toBe(1)
+    // 空列表
+    expect(paginate([], 1, 2)).toEqual({ items: [], page: 1, totalPage: 0 })
+    // 每页 <= 0 → 不分页
+    expect(paginate(items, 1, 0)).toEqual({ items, page: 1, totalPage: 1 })
+    // 坏值
+    expect(paginate(null, 1, 2)).toEqual({ items: [], page: 1, totalPage: 0 })
+  })
+
+  test('模型库翻页：超过一页时出现翻页控件，筛选变化后回到第 1 页', () => {
+    const many = Array.from({ length: 11 }, (_, i) => ({
+      id: `m${i}`,
+      title: `Model ${String(i).padStart(2, '0')}`,
+      href: `/model-${i}`,
+      ext: { platforms: [i % 2 ? 'P1' : 'P2'] }
+    }))
+    const { container } = render(
+      <ModelToolbar models={adaptPosts(many)} today='2026-10-15' />
+    )
+    // 每页 9 条：11 个模型 → 2 页，首页只渲染 9 张卡
+    expect(screen.getAllByTestId('ft-model-card')).toHaveLength(9)
+    const pager = screen.getByTestId('ft-pager')
+    expect(within(pager).getByRole('button', { name: '下一页' })).toBeEnabled()
+    expect(within(pager).getByRole('button', { name: '上一页' })).toBeDisabled()
+
+    fireEvent.click(within(pager).getByRole('button', { name: '下一页' }))
+    expect(screen.getAllByTestId('ft-model-card')).toHaveLength(2)
+
+    // 搜索命中 1 条 → 总页数变 1，翻页控件消失，且不会停在越界页
+    fireEvent.change(screen.getByPlaceholderText('搜索模型或厂商'), {
+      target: { value: 'Model 00' }
+    })
+    expect(container.querySelectorAll('.mcard')).toHaveLength(1)
+    expect(screen.queryByTestId('ft-pager')).toBeNull()
+  })
+
+  test('模型库翻页：页码固定 5 槽（滑动窗口），翻页时按钮数量不变（左右箭头不位移）', () => {
+    // 90 个模型 / 每页 9 → 10 页，超过 5 页时窗口滑动。
+    const makeModels = n =>
+      Array.from({ length: n }, (_, i) => ({
+        id: `m${i}`,
+        title: `Model ${String(i).padStart(3, '0')}`,
+        href: `/model-${i}`,
+        ext: { platforms: ['P1'] }
+      }))
+
+    const many = makeModels(90) // 10 页
+    const { container } = render(
+      <ModelToolbar models={adaptPosts(many)} today='2026-10-15' />
+    )
+    const countSlots = () => container.querySelectorAll('.pager .pgbtn').length
+    const first = countSlots()
+    // 上一页 + 5 个页码 + 下一页 = 7 个按钮
+    expect(first).toBe(7)
+
+    const pager = screen.getByTestId('ft-pager')
+    // 依次点到中间、末页，页码按钮数量必须始终为固定 5 槽
+    for (let i = 0; i < 9; i++) {
+      fireEvent.click(within(pager).getByRole('button', { name: '下一页' }))
+      expect(countSlots()).toBe(first)
+    }
+    // 末页可见窗口应包含最后一页
+    expect(
+      within(pager).getByRole('button', { name: '10' })
+    ).toHaveAttribute('aria-current', 'page')
   })
 
   test('首页无数据时使用原设计空态样式', () => {
@@ -386,6 +498,22 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     // 仍有厂商时该行保留（见上方工具栏用例）
     const { container: withProv } = render(<LayoutIndex posts={mockPosts} />)
     expect(withProv.querySelector('.provbar')).toBeTruthy()
+  })
+
+  test('平台一览翻页：超过 9 个平台时出现翻页控件，翻页切换卡片', () => {
+    // 12 个平台 → 每页 9 张 → 2 页
+    const models = Array.from({ length: 12 }, (_, i) => ({
+      id: `m${i}`,
+      title: `Model ${i}`,
+      href: `/model-${i}`,
+      ext: { platforms: [`Platform${String(i).padStart(2, '0')}`] }
+    }))
+    render(<LayoutIndex posts={models} />)
+    expect(screen.getAllByTestId('ft-platform')).toHaveLength(9)
+    const pager = screen.getByTestId('ft-platform-pager')
+    expect(within(pager).getByRole('button', { name: '下一页' })).toBeEnabled()
+    fireEvent.click(within(pager).getByRole('button', { name: '下一页' }))
+    expect(screen.getAllByTestId('ft-platform')).toHaveLength(3)
   })
 
   test('平台卡片整卡可点进入平台详情页，且「前往官网」为独立外链', () => {
@@ -1517,10 +1645,12 @@ describe('themes/freetoken 样式作用域（不污染全局）', () => {
     const bare =
       /(?<!:where\()(\*|a|button|nav|section|h1|h2|footer):not\(#article-wrapper \1\)/g
     expect(styleSource.match(bare)).toBeNull()
-    // 排除逻辑仍在：至少 18 处 :where() 包裹的 :not(#article-wrapper …)
+    // 排除逻辑仍在：至少 18 处 :where() 包裹的 :not(#article-wrapper …)。
+    // 允许 :where() 内追加额外的 :not(...) 限定（如 nav 排除翻页控件 .pager），
+    // 只要正文区排除仍由 :where() 降权即视为合规。
     const wrapped =
       styleSource.match(
-        /:where\((\*|a|button|nav|section|h1|h2|footer):not\(#article-wrapper \1\)\)/g
+        /:where\((\*|a|button|nav|section|h1|h2|footer):not\(#article-wrapper \1\)(?:[^()]|\([^()]*\))*\)/g
       ) || []
     expect(wrapped.length).toBeGreaterThanOrEqual(18)
   })

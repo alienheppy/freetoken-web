@@ -80,7 +80,9 @@ const Style = () => (
     }
 
     /* nav */
-    #theme-freetoken :where(nav:not(#article-wrapper nav)) {
+    /* 顶上导航：仅命中真正的顶栏 nav；翻页控件同为 <nav>，需排除，
+       否则会被同一条规则带上吸顶与底部分隔线（模型库分页下方那条横线即由此而来）。 */
+    #theme-freetoken :where(nav:not(#article-wrapper nav):not(.pager)) {
       position: sticky;
       top: 0;
       z-index: 100;
@@ -90,7 +92,7 @@ const Style = () => (
       border-bottom: 1px solid var(--hairline);
     }
 
-    .dark #theme-freetoken :where(nav:not(#article-wrapper nav)) {
+    .dark #theme-freetoken :where(nav:not(#article-wrapper nav):not(.pager)) {
       background: rgba(0, 0, 0, 0.62);
     }
 
@@ -404,8 +406,9 @@ const Style = () => (
       z-index: 50;
     }
 
-    #theme-freetoken .sortdd:hover .sortmenu,
-    #theme-freetoken .sortdd:focus-within .sortmenu {
+    /* 展开态由组件显式控制（hover 进入展开、选中后收起）：
+       不用 :hover 直接撑开关联菜单，否则鼠标停在菜单上时无法收回。 */
+    #theme-freetoken .sortdd.open .sortmenu {
       opacity: 1;
       visibility: visible;
       transform: translateY(0);
@@ -580,6 +583,55 @@ const Style = () => (
       grid-column: 1 / -1;
     }
 
+    /* 模型库翻页：右对齐（与上方卡片网格右缘齐平），克制的药丸页码 */
+    #theme-freetoken .pager {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 30px;
+    }
+
+    /* 药丸按钮（非圆形）：定高、左右留白撑成胶囊；上下箭头与页码同款，
+       槽位宽度一致，翻页时整行宽度不变、左右箭头不抖动。 */
+    #theme-freetoken .pgbtn {
+      min-width: 40px;
+      height: 38px;
+      padding: 0 14px;
+      border-radius: 980px;
+      border: 1px solid var(--hairline);
+      background: var(--bg);
+      color: var(--txt);
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    /* 上一页 / 下一页：沿用基础药丸样式（浅底 + 细边框），悬停时描边转黑 */
+    #theme-freetoken .pgbtn:first-child,
+    #theme-freetoken .pgbtn:last-child {
+      padding: 0 18px;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    #theme-freetoken .pgbtn:hover:not(:disabled):not(.on) {
+      border-color: var(--txt);
+    }
+
+    #theme-freetoken .pgbtn.on {
+      background: var(--txt);
+      color: var(--bg);
+      border-color: var(--txt);
+      font-weight: 600;
+    }
+
+    #theme-freetoken .pgbtn:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
     /* stale / expired cards */
     #theme-freetoken .mcard.stale {
       opacity: 0.55;
@@ -673,6 +725,7 @@ const Style = () => (
       width: fit-content;
     }
 
+    /* 「前往官网」：恢复平台卡片原有的浅蓝药丸样式 */
     #theme-freetoken .plimk a {
       display: inline-flex;
       align-items: center;

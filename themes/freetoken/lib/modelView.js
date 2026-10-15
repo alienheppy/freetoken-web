@@ -98,6 +98,15 @@ function platformScore(model, cnt) {
 }
 
 /**
+ * 该模型已收录的免费提供商（渠道）数——与卡片底栏「模型提供商 N」同源同口径。
+ * @param {object} model
+ * @returns {number}
+ */
+function providerCount(model) {
+  return Array.isArray(model?.platforms) ? model.platforms.length : 0
+}
+
+/**
  * 筛选 + 排序（纯函数，行为对齐原设计 page.jsx）
  * @param {Array} models adaptPosts 输出
  * @param {{kw?: string, filter?: string, provider?: string, sort?: string}} options
@@ -125,12 +134,40 @@ export function filterAndSortModels(models, options = {}) {
 
   if (sort === 'providers') {
     const cnt = platformCounts(list)
-    result = [...result].sort((a, b) => platformScore(b, cnt) - platformScore(a, cnt))
+    // 「供应商最多」以卡片显示的「模型提供商 N」为准（平台数降序）；
+    // 平台数相同时再用平台热度分（各平台收录数之和）做次级排序，最后按名称稳定收尾。
+    // 旧版仅按热度分排序，会出现「1 个提供商的模型排到 3 个提供商之前」的观感错误。
+    result = [...result].sort((a, b) => {
+      const byCount = providerCount(b) - providerCount(a)
+      if (byCount !== 0) return byCount
+      const byScore = platformScore(b, cnt) - platformScore(a, cnt)
+      if (byScore !== 0) return byScore
+      return modelName(a).localeCompare(modelName(b), 'en')
+    })
   } else if (sort === 'az') {
     result = [...result].sort((a, b) => modelName(a).localeCompare(modelName(b), 'en'))
   }
 
   return result
+}
+
+/**
+ * 前端分页切片（纯函数）。
+ * 页码越界时夹到有效范围内，避免筛选后 page 残留导致的空页。
+ * @param {Array} items 已筛选/排序的列表
+ * @param {number} page 1 起
+ * @param {number} perPage 每页条数（<=0 视为不分页）
+ * @returns {{items: Array, page: number, totalPage: number}}
+ */
+export function paginate(items, page, perPage) {
+  const list = Array.isArray(items) ? items : []
+  const size = Number(perPage) > 0 ? Math.floor(Number(perPage)) : 0
+  if (!size) return { items: list, page: 1, totalPage: list.length ? 1 : 0 }
+  const totalPage = Math.ceil(list.length / size)
+  if (totalPage <= 0) return { items: [], page: 1, totalPage: 0 }
+  const current = Math.min(Math.max(Number(page) || 1, 1), totalPage)
+  const start = (current - 1) * size
+  return { items: list.slice(start, start + size), page: current, totalPage }
 }
 
 /**
