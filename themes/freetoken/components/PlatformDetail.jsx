@@ -10,7 +10,7 @@ import { adaptPosts, fmtCtx } from '../lib/adaptModel'
 
 /**
  * 平台详情页：某提供商（Notion type=Platform）的免费模型列表。
- * 结构：返回（回首页平台区块）→ 平台名 + 认证徽标 → 元信息 → 平台简介 → 免费模型表格。
+ * 结构：返回（回首页平台区块）→ 平台名 + 认证徽标 → 元信息 → 平台简介 → 免费模型表格 → 接入说明。
  * 模型用表格列表呈现（而非卡片网格）：一眼即可按「上下文 / 能力 / 提供商」横向对比，
  * 提供商数量再多也不会撑爆版面。
  * 模型列表由 pages/platform/[platform] 传入（已按 ext.platforms 命中该平台过滤）。
@@ -134,6 +134,15 @@ export default function PlatformDetail({ platform, posts }) {
           )}
         </div>
       </section>
+
+      {/* 接入说明：来源为 Notion「平台供应商」库（type=Platform）的「接入说明」属性，
+          与渠道行级 guide 同源字段；平台档案里录一次即在该平台所有模型页通用。 */}
+      {platform.guide && (
+        <section data-testid='ft-platform-guide'>
+          <h2>{siteConfig('FREETOKEN_PLATFORM_GUIDE_TITLE', null, CONFIG)}</h2>
+          <p className='introcopy'>{platform.guide}</p>
+        </section>
+      )}
     </div>
   )
 }

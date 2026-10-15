@@ -6,7 +6,7 @@ const CONFIG = {
   // 站点信息（原设计 layout.jsx / page.jsx 文案）
   FREETOKEN_LOGO_TEXT: 'FreeTokenHub',
   FREETOKEN_HERO_EYEBROW: '持续更新 · 逐条核实',
-  FREETOKEN_HERO_TITLE: '免费的大模型。\n一目了然。',
+  FREETOKEN_HERO_TITLE: '免费的大模型，\n一目了然。',
   FREETOKEN_HERO_SUB: '哪些平台送、送什么模型、有什么限制 — 收录于一个页面。',
   FREETOKEN_HERO_CTA_PRIMARY: '浏览模型',
   FREETOKEN_HERO_CTA_SECONDARY: '查看平台',
@@ -41,6 +41,7 @@ const CONFIG = {
   FREETOKEN_PLATFORM_BACK: '返回平台一览',
   FREETOKEN_PLATFORM_INTRO_TITLE: '平台简介。',
   FREETOKEN_PLATFORM_MODELS_TITLE: '免费模型。',
+  FREETOKEN_PLATFORM_GUIDE_TITLE: '接入说明。',
   FREETOKEN_PLATFORM_EMPTY: '该平台暂未收录免费模型。',
 
   // 单页（Notion type=Page 的普通页面，如 /about、/links，非模型条目）

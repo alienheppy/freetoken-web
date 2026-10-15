@@ -211,6 +211,10 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     const hero = screen.getByTestId('ft-hero')
     expect(hero).toHaveClass('hero')
     expect(within(hero).getByText(/免费的大模型/)).toBeInTheDocument()
+    // 首行以逗号收尾（原设计误用句号），第二行仍为句号
+    expect(screen.getByTestId('ft-hero-title').textContent).toBe(
+      '免费的大模型，一目了然。'
+    )
     expect(within(hero).getByText('持续更新 · 逐条核实')).toBeInTheDocument()
     expect(within(hero).getByText('浏览模型')).toHaveAttribute('href', '#models')
     expect(within(hero).getByText('查看平台')).toHaveAttribute('href', '#platforms')
@@ -428,7 +432,8 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
           quota: '新账户送额度',
           context: 131072,
           certifications: ['平台认证'],
-          intro: 'OpenRouter 聚合多家模型，提供统一 OpenAI 兼容端点。'
+          intro: 'OpenRouter 聚合多家模型，提供统一 OpenAI 兼容端点。',
+          guide: '1. 注册 OpenRouter\n2. 生成 API Key\n3. base_url 填 https://openrouter.ai/api/v1'
         }}
         posts={mockPosts}
       />
@@ -444,6 +449,12 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(within(introSection).getByText('平台简介。')).toBeInTheDocument()
     expect(
       within(introSection).getByText(/OpenRouter 聚合多家模型/)
+    ).toBeInTheDocument()
+    // 接入说明区块：正文来自 Notion「平台供应商」库（type=Platform）的「接入说明」属性
+    const guideSection = within(root).getByTestId('ft-platform-guide')
+    expect(within(guideSection).getByText('接入说明。')).toBeInTheDocument()
+    expect(
+      within(guideSection).getByText(/base_url 填 https:\/\/openrouter\.ai\/api\/v1/)
     ).toBeInTheDocument()
     // Base URL 一键复制：可点按钮，含「复制」提示
     const copyBtn = within(root).getByRole('button', { name: /复制 Base URL/ })
@@ -476,6 +487,8 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       <LayoutPlatform platform={{ name: 'ZeroAI', certifications: [] }} posts={[]} />
     )
     expect(screen.getByText('该平台暂未收录免费模型。')).toHaveClass('empty')
+    // 平台档案未填「接入说明」时整个区块不渲染，不留空标题
+    expect(screen.queryByTestId('ft-platform-guide')).toBeNull()
     unmount2()
     const { container: empty } = render(<LayoutPlatform platform={null} posts={[]} />)
     expect(empty.firstChild).toBeNull()
