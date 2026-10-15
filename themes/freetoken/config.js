@@ -86,6 +86,10 @@ const CONFIG = {
   FREETOKEN_MODEL_GRID_COLUMNS: 3,
   FREETOKEN_PLATFORM_GRID_COLUMNS: 3,
   FREETOKEN_EXPIRY_DAYS: 30,
+  // 模型库每页条数（3 列 × 3 行）；搜索/筛选/排序后在客户端分页
+  FREETOKEN_MODELS_PER_PAGE: 9,
+  // 平台一览每页条数（3 列 × 3 行）；平台数随收录增长，与模型库一致分页
+  FREETOKEN_PLATFORMS_PER_PAGE: 9,
 
   // 导航回退菜单（Notion 未配置 Menu/SubMenu 时使用，取原设计三链接）
   FREETOKEN_FALLBACK_MENU: [
