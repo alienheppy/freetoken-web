@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import SmartLink from '@/components/SmartLink'
 import { siteConfig } from '@/lib/config'
@@ -8,6 +8,13 @@ import { siteConfig } from '@/lib/config'
 import CONFIG from '../config'
 import { adaptPosts, fmtCtx } from '../lib/adaptModel'
 import { PLATFORM_SORTS, sortModelsBy, togglePlatformSort } from '../lib/modelView'
+
+/**
+ * 「免费模型」表格首屏展示的行数：超出的部分在本区域内滚动。
+ * 模型多的平台（例如 UnoRouter 有 38 个）否则会把「接入说明」推到很远，
+ * 用户要滚很久才能看到，也失去“一眼看清这个平台给什么”的作用。
+ */
+const VISIBLE_ROWS = 11
 
 /**
  * 平台详情页：某提供商（Notion type=Platform）的免费模型列表。
@@ -28,6 +35,33 @@ export default function PlatformDetail({ platform, posts }) {
     [adapted, sort]
   )
   const [copied, setCopied] = useState(false)
+
+  // 表格限高：量出第 VISIBLE_ROWS 行的实测底部位置写进 CSS 变量，
+  // 而不是写死像素 —— 行高会随模型名换行、有无简介而变。
+  // 排序后行内容变化、窗口尺寸变化都会重新量算。
+  const bodyRef = useRef(null)
+  useEffect(() => {
+    const body = bodyRef.current
+    if (!body) return
+
+    const measure = () => {
+      const rows = body.querySelectorAll('.prow')
+      if (rows.length === 0) return
+      const lastVisible = rows[Math.min(VISIBLE_ROWS, rows.length) - 1]
+      const height =
+        lastVisible.getBoundingClientRect().bottom -
+        body.getBoundingClientRect().top +
+        body.scrollTop
+      // 布局未就绪时量到 0（例如无渲染环境），此时不写入，避免把表格压成 0 高
+      if (height > 0) {
+        body.style.setProperty('--pbody-max', `${Math.ceil(height)}px`)
+      }
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [models])
 
   if (!platform) return null
 
@@ -128,32 +162,39 @@ export default function PlatformDetail({ platform, posts }) {
               ))}
             </div>
           )}
-          {models.map(model => (
-            <SmartLink
-              key={model.id || model.href}
-              href={model.href || '/'}
-              data-testid='ft-platform-model'
-              className='prow'>
-              <div className='pmain'>
-                <div className='pmname'>{model.name}</div>
-                {model.desc && <div className='pmdesc'>{model.desc}</div>}
-              </div>
-              <div className='pctx' data-label='上下文'>
-                {fmtCtx(model.context)}
-              </div>
-              <div className='pcaps' data-label='能力'>
-                {model.vision && <span className='tag dot vi'>视觉</span>}
-                {model.tools && <span className='tag dot tools'>工具</span>}
-                {model.reasoning && <span className='tag dot rsn'>推理</span>}
-                {!model.vision && !model.tools && !model.reasoning && (
-                  <span className='pnone'>—</span>
-                )}
-              </div>
-              <div className='pprov' data-label='模型提供商'>
-                {model.platforms.length}
-              </div>
-            </SmartLink>
-          ))}
+          {models.length > 0 && (
+            // 限高滚动区：表头留在外面常驻可见，只有行列表滚动。
+            <div className='pbody' ref={bodyRef} data-testid='ft-platform-models-body'>
+              {models.map(model => (
+                <SmartLink
+                  key={model.id || model.href}
+                  href={model.href || '/'}
+                  data-testid='ft-platform-model'
+                  className='prow'>
+                  <div className='pmain'>
+                    <div className='pmname'>{model.name}</div>
+                    {model.desc && <div className='pmdesc'>{model.desc}</div>}
+                  </div>
+                  <div className='pctx' data-label='上下文'>
+                    {fmtCtx(model.context)}
+                  </div>
+                  <div className='pcaps' data-label='能力'>
+                    {model.vision && <span className='tag dot vi'>视觉</span>}
+                    {model.tools && <span className='tag dot tools'>工具</span>}
+                    {model.reasoning && (
+                      <span className='tag dot rsn'>推理</span>
+                    )}
+                    {!model.vision && !model.tools && !model.reasoning && (
+                      <span className='pnone'>—</span>
+                    )}
+                  </div>
+                  <div className='pprov' data-label='模型提供商'>
+                    {model.platforms.length}
+                  </div>
+                </SmartLink>
+              ))}
+            </div>
+          )}
           {models.length === 0 && (
             <div className='empty'>
               {siteConfig('FREETOKEN_PLATFORM_EMPTY', null, CONFIG)}

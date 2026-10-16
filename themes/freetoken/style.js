@@ -903,6 +903,66 @@ const Style = () => (
       padding: 70px 0;
     }
 
+    /* 「免费模型」限高滚动：表头留在容器外常驻可见，只有行列表滚动。
+       --pbody-max 由组件按第 VISIBLE_ROWS 行的实测底部位置写入，
+       这里的 800px 只是 JS 挂载前的首帧兜底，避免整表铺开再收起的闪动。 */
+    #theme-freetoken .pbody {
+      --pbody-max: 800px;
+      /* 滚动手柄颜色：静止时淡到几乎看不出，指针进入列表区才加深。
+         对应 Apple 的浮层滚动条观感 —— 轨道恒透明，只有手柄淡淡浮现。 */
+      --pbody-thumb: rgba(17, 17, 17, 0.07);
+      max-height: var(--pbody-max);
+      overflow-y: auto;
+      /* 常驻预留滚动条槽位：无论表格是否超出行数，列宽都一致，
+         表头（.phead 在滚动区外）与数据行的列不会左右错开。 */
+      scrollbar-gutter: stable;
+      /* Firefox 不支持 hover 渐变，退化成半透明的细滚动条 */
+      scrollbar-width: thin;
+      scrollbar-color: rgba(17, 17, 17, 0.2) transparent;
+    }
+
+    /* 鼠标在列表区内（或键盘聚焦其中）时手柄浮现，移到外部随即淡出 */
+    #theme-freetoken .pbody:hover,
+    #theme-freetoken .pbody:focus-within {
+      --pbody-thumb: rgba(17, 17, 17, 0.28);
+    }
+
+    /* Chromium / Edge：轨道透明、手柄内缩成胶囊，宽度收窄到 10px */
+    #theme-freetoken .pbody::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    #theme-freetoken .pbody::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #theme-freetoken .pbody::-webkit-scrollbar-thumb {
+      background-color: var(--pbody-thumb);
+      background-clip: content-box;
+      border: 2px solid transparent;
+      border-radius: 999px;
+      transition: background-color 0.3s ease;
+    }
+
+    #theme-freetoken .pbody::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(17, 17, 17, 0.44);
+    }
+
+    .dark #theme-freetoken .pbody {
+      --pbody-thumb: rgba(255, 255, 255, 0.09);
+      scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
+    }
+
+    .dark #theme-freetoken .pbody:hover,
+    .dark #theme-freetoken .pbody:focus-within {
+      --pbody-thumb: rgba(255, 255, 255, 0.32);
+    }
+
+    .dark #theme-freetoken .pbody::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(255, 255, 255, 0.48);
+    }
+
     #theme-freetoken .phead,
     #theme-freetoken .prow {
       display: grid;
@@ -919,6 +979,9 @@ const Style = () => (
       color: var(--faint);
       background: var(--bg-alt);
       border-bottom: 1px solid var(--hairline);
+      /* 补上右侧滚动条槽位的宽度，让表头列和数据行列对齐。
+         数值 = 行内边距 22px + .pbody 的 10px 滚动条槽位。 */
+      padding-right: 32px;
     }
 
     /* 表头即排序控件：沿用表头字号/颜色，去掉按钮默认外观，
@@ -1010,6 +1073,13 @@ const Style = () => (
     /* 移动端：表格降级为堆叠卡片，用 data-label 前缀标注列含义；
        表头不再隐藏，改成一行可换行的排序按钮，保证手机上也能排序。 */
     @media (max-width: 760px) {
+      /* 手机上每行是堆叠卡片、行高大得多，限高会变成「陷进内部滚动」的死区，
+         交还给整页滚动更自然。 */
+      #theme-freetoken .pbody {
+        max-height: none;
+        overflow: visible;
+      }
+
       #theme-freetoken .phead {
         display: flex;
         flex-wrap: wrap;

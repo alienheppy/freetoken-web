@@ -660,11 +660,17 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     // 免费模型以表格列表呈现（非卡片网格）
     const table = within(root).getByTestId('ft-platform-models')
     expect(table).toHaveClass('ptable')
+    // 行列表被包在限高滚动容器里；表头留在容器外，滚动时保持可见
+    const tableBody = within(table).getByTestId('ft-platform-models-body')
+    expect(tableBody).toHaveClass('pbody')
+    expect(tableBody.querySelector('.phead')).toBeNull()
     // 末列表头文案为「模型提供商」
     expect(within(table).getByText('模型提供商')).toBeInTheDocument()
     expect(within(table).queryByTestId('ft-model-card')).toBeNull()
     const rows = within(table).getAllByTestId('ft-platform-model')
     expect(rows).toHaveLength(3)
+    // 所有行都落在滚动容器内（切列排序后亦然）
+    expect(tableBody.querySelectorAll('.prow')).toHaveLength(3)
     // 行内容：模型名 + 上下文档位 + 提供商数
     expect(rows[0].querySelector('.pmname').textContent).toBe('GPT-4o')
     expect(rows[0].querySelector('.pctx').textContent).toBe('128K')
