@@ -5,9 +5,10 @@ import { render, screen, fireEvent, act } from '@testing-library/react'
  *
  * 本站只有「模型库 / 平台一览」两个区块，没有博客式分类与标签，
  * 「博客分类 / 博客标签」会指向空页面；「主题切换」会随机跳到其他官方主题；
- * 「复制」与浏览器自带的划选复制重复。这四项应保持默认关闭。
- * 「复制」必须走独立开关 CUSTOM_RIGHT_CLICK_CONTEXT_MENU_COPY，不能复用 CAN_COPY —— 后者
- * 一旦为 false 会连带渲染 <DisableCopy/> 禁止全站复制。
+ * 「主题切换」会随机跳到其他官方主题，这三项应保持默认关闭。
+ * 「复制」是常用入口、保持默认开启，但必须走独立开关
+ * CUSTOM_RIGHT_CLICK_CONTEXT_MENU_COPY，不能复用 CAN_COPY —— 后者一旦为 false
+ * 会连带渲染 <DisableCopy/> 禁止全站复制。
  */
 
 // 用真实 blog.config 值（不 mock 配置文件本身），确保断言的是实际默认值
@@ -61,33 +62,34 @@ function openMenu() {
 }
 
 describe('右键菜单：默认入口集合', () => {
-  test('保留「随便逛逛 / 分享地址 / 深色模式」，去掉分类与标签', () => {
+  test('保留「随便逛逛 / 分享地址 / 复制 / 深色模式」，去掉分类与标签', () => {
     openMenu()
     expect(screen.getByText('随便逛逛')).toBeInTheDocument()
     expect(screen.getByText('分享地址')).toBeInTheDocument()
+    expect(screen.getByText('复制')).toBeInTheDocument()
     expect(screen.getByText('深色模式')).toBeInTheDocument()
     // 本站没有博客式分类/标签，指向空页面，默认不展示
     expect(screen.queryByText('博客分类')).toBeNull()
     expect(screen.queryByText('博客标签')).toBeNull()
   })
 
-  test('去掉「主题切换」与「复制」，且不因隐藏复制而禁用全站复制', () => {
+  test('去掉「主题切换」，保留「复制」，且不因复制开关禁用全站复制', () => {
     openMenu()
     expect(screen.queryByText('主题切换')).toBeNull()
-    expect(screen.queryByText('复制')).toBeNull()
+    expect(screen.getByText('复制')).toBeInTheDocument()
     // 「复制」走独立开关，不能把站点级 CAN_COPY 一起改成 false
     // （否则 ExternalPlugins 会渲染 <DisableCopy/> 禁掉全站划选复制）
     const BLOG = require('../../blog.config.js')
     expect(BLOG.CAN_COPY).not.toBe(false)
-    expect(BLOG.CUSTOM_RIGHT_CLICK_CONTEXT_MENU_COPY).toBe(false)
+    expect(BLOG.CUSTOM_RIGHT_CLICK_CONTEXT_MENU_COPY).toBe(true)
   })
 
-  test('配置项本身默认关闭，且可被环境变量重新打开', () => {
+  test('无效入口默认关闭、常用入口默认开启，且均可被环境变量覆盖', () => {
     const BLOG = require('../../blog.config.js')
     expect(BLOG.CUSTOM_RIGHT_CLICK_CONTEXT_MENU_CATEGORY).toBe(false)
     expect(BLOG.CUSTOM_RIGHT_CLICK_CONTEXT_MENU_TAG).toBe(false)
     expect(BLOG.CUSTOM_RIGHT_CLICK_CONTEXT_MENU_THEME_SWITCH).toBe(false)
-    expect(BLOG.CUSTOM_RIGHT_CLICK_CONTEXT_MENU_COPY).toBe(false)
+    expect(BLOG.CUSTOM_RIGHT_CLICK_CONTEXT_MENU_COPY).toBe(true)
     // 菜单本体与导航类入口保持开启
     expect(BLOG.CUSTOM_RIGHT_CLICK_CONTEXT_MENU).toBe(true)
     expect(BLOG.CUSTOM_RIGHT_CLICK_CONTEXT_MENU_RANDOM_POST).toBe(true)
