@@ -112,7 +112,7 @@ export default function CustomContextMenu(props) {
   }
 
   /**
-   * 复制内容
+   * 复制当前选中的文本（仅当 CUSTOM_RIGHT_CLICK_CONTEXT_MENU_COPY 打开时才有入口）
    */
   function handleCopy() {
     const selectedText = document.getSelection().toString()
@@ -125,9 +125,6 @@ export default function CustomContextMenu(props) {
       if (tempInput && tempInput.parentNode && tempInput.parentNode.contains(tempInput)) {
         tempInput.parentNode.removeChild(tempInput);
       }
-      // alert("Text copied: " + selectedText);
-    } else {
-      // alert("Please select some text first.");
     }
   }
 
@@ -150,7 +147,12 @@ export default function CustomContextMenu(props) {
   const CUSTOM_RIGHT_CLICK_CONTEXT_MENU_TAG = siteConfig(
     'CUSTOM_RIGHT_CLICK_CONTEXT_MENU_TAG'
   )
+  // 「复制」入口需要同时满足：菜单开关打开 + 当前页面允许复制。
+  // 站点级 CAN_COPY（是否禁止复制）由 ExternalPlugins 单独判定，二者解耦：
+  // 关掉菜单项不会连带触发 <DisableCopy/> 禁掉全站划选复制。
   const CAN_COPY = props.canCopy ?? siteConfig('CAN_COPY')
+  const CUSTOM_RIGHT_CLICK_CONTEXT_MENU_COPY =
+    siteConfig('CUSTOM_RIGHT_CLICK_CONTEXT_MENU_COPY') && CAN_COPY
   const CUSTOM_RIGHT_CLICK_CONTEXT_MENU_SHARE_LINK = siteConfig(
     'CUSTOM_RIGHT_CLICK_CONTEXT_MENU_SHARE_LINK'
   )
@@ -222,7 +224,7 @@ export default function CustomContextMenu(props) {
 
         {/* 功能按钮 */}
         <div className='w-full px-2'>
-          {CAN_COPY && (
+          {CUSTOM_RIGHT_CLICK_CONTEXT_MENU_COPY && (
             <div
               onClick={handleCopy}
               title={locale.MENU.COPY}

@@ -1722,6 +1722,25 @@ describe('themes/freetoken 免费获取渠道清单（可检索 + 渐进展开�
     expect(screen.queryByLabelText('搜索免费获取渠道')).toBeNull()
     expect(screen.getAllByTestId('ft-offer-card')).toHaveLength(1)
   })
+
+  test('平台名命中平台档案时跳详情页；未建档保持纯文本（不产生 404 入口）', () => {
+    render(
+      <LayoutSlug
+        post={{ id: 'd-link', title: 'Link Model', href: '/link-model', ext: {} }}
+        offerRowsOverride={[
+          { name: 'Kiraai', desc: '很好', context: 0, baseUrl: '' },
+          { name: '未建档平台', desc: '无档案', context: 0, baseUrl: '' }
+        ]}
+        platformProfiles={[{ name: 'Kiraai', url: 'https://kiraai.vn' }]}
+      />
+    )
+    const linked = screen.getByText('Kiraai')
+    expect(linked.tagName).toBe('A')
+    expect(linked).toHaveAttribute('href', platformHref('Kiraai'))
+    // 未建档的平台名保持 <span>，不渲染成链接
+    const plain = screen.getByText('未建档平台')
+    expect(plain.tagName).toBe('SPAN')
+  })
 })
 
 describe('themes/freetoken 样式作用域（不污染全局）', () => {

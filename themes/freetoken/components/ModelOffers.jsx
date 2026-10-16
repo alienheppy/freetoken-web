@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import SmartLink from '@/components/SmartLink'
 
 import { fmtCtx } from '../lib/adaptModel'
-import { buildCurl } from '../lib/modelView'
+import { buildCurl, platformHref } from '../lib/modelView'
 import CopyButton from './CopyButton'
 
 /**
@@ -28,6 +28,10 @@ import CopyButton from './CopyButton'
  *   baseUrl     → 「Base URL」列 + 展开后的 curl
  *   接入说明    → 展开后的接入步骤
  *   网址        → 「前往官网」外链
+ *
+ * 主列平台名可点：仅当该名称命中「平台档案」（type=Platform 行）时渲染为链接，
+ * 跳到 /platform/<名称>（该平台的免费模型列表）。未建档的名称保持纯文本，
+ * 避免跳到 404；「前往官网」仍是独立外链，不受影响。
  */
 const SORTS = [
   { key: 'default', label: '默认' },
@@ -120,7 +124,16 @@ export default function ModelOffers({ model, rows }) {
               <div className='orow'>
                 <div className='ocell omain'>
                   <div className='otop'>
-                    <span className='oname'>{row.name}</span>
+                    {row.platformProfile ? (
+                      <SmartLink
+                        href={platformHref(row.name)}
+                        className='oname'
+                        title={`查看 ${row.name} 的免费模型`}>
+                        {row.name}
+                      </SmartLink>
+                    ) : (
+                      <span className='oname'>{row.name}</span>
+                    )}
                     {row.quota ? (
                       <span className='oquota'>{row.quota}</span>
                     ) : null}

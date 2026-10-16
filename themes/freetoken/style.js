@@ -1408,6 +1408,17 @@ const Style = () => (
       letter-spacing: -0.01em;
     }
 
+    /* 平台名可点（命中平台档案时渲染为链接）：悬停给出可点提示，
+       但不加下划线压力，保持整行清单的克制观感 */
+    #theme-freetoken a.oname {
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+
+    #theme-freetoken a.oname:hover {
+      color: var(--blue);
+    }
+
     #theme-freetoken .oquota {
       font-size: 12px;
       font-weight: 600;
