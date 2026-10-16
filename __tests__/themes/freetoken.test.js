@@ -1736,13 +1736,28 @@ describe('themes/freetoken 样式作用域（不污染全局）', () => {
     // 白名单：官方组件渲染在 #theme-freetoken 根容器之外，主题无法用前缀命中，
     // 只能用全局特征类名覆盖（须在 style.js 注释中说明原因）。
     const GLOBAL_OVERRIDES = ['.notification.notification']
-    const selectorLines = styleSource
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.endsWith('{'))
-      .filter(line => !line.startsWith('/*'))
-      .filter(line => !line.startsWith('@media'))
-      .filter(line => !line.startsWith('${'))
+    // @keyframes 内部是动画步进（0% / from / to），不是选择器，
+    // 按大括号深度整块跳过，避免把动画帧误判成全局样式。
+    const selectorLines = []
+    let keyframesDepth = 0
+    for (const raw of styleSource.split('\n')) {
+      const line = raw.trim()
+      if (keyframesDepth > 0) {
+        keyframesDepth += (line.match(/{/g) || []).length
+        keyframesDepth -= (line.match(/}/g) || []).length
+        continue
+      }
+      if (line.startsWith('@keyframes')) {
+        keyframesDepth += (line.match(/{/g) || []).length
+        keyframesDepth -= (line.match(/}/g) || []).length
+        continue
+      }
+      if (!line.endsWith('{')) continue
+      if (line.startsWith('/*')) continue
+      if (line.startsWith('@media')) continue
+      if (line.startsWith('${')) continue
+      selectorLines.push(line)
+    }
     expect(selectorLines.length).toBeGreaterThan(30)
     for (const line of selectorLines) {
       expect(

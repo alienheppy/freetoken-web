@@ -7,6 +7,7 @@ import { latestVerifiedAt } from '../lib/modelView'
 import { Style } from '../style'
 import BackToTop from './BackToTop'
 import Footer from './Footer'
+import LoadingIndicator from './LoadingIndicator'
 import NavMenu from './NavMenu'
 
 /**
@@ -29,6 +30,7 @@ export default function LayoutBase(props) {
   return (
     <div id='theme-freetoken'>
       <Style />
+      <LoadingIndicator />
       <NavMenu logoText={logoText} siteInfo={siteInfo} menu={menu} />
       {children}
       <BackToTop />

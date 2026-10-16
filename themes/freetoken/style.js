@@ -475,6 +475,115 @@ const Style = () => (
       transform: translateY(-2px);
     }
 
+    /* 路由切换反馈（扩展：原设计无加载提示）
+     * 未预生成的模型详情页首次打开要在服务端现场重建 Notion 数据，
+     * 期间页面毫无变化，用户会以为点击失效。进度条立刻出现给出确定响应，
+     * 文字胶囊延迟出现避免快跳转闪烁（见 LoadingIndicator.jsx）。 */
+    #theme-freetoken .loadingbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      z-index: 120;
+      background: transparent;
+      pointer-events: none;
+    }
+
+    #theme-freetoken .loadingbar-fill {
+      display: block;
+      height: 100%;
+      width: 100%;
+      background: var(--blue);
+      transform-origin: left center;
+      animation: ft-loading-slide 1.6s ease-in-out infinite;
+    }
+
+    /* 不定长进度条：前段持续前进到 90% 后回退，等待期间始终在动 */
+    @keyframes ft-loading-slide {
+      0% {
+        transform: scaleX(0.05);
+        opacity: 1;
+      }
+      60% {
+        transform: scaleX(0.9);
+        opacity: 1;
+      }
+      100% {
+        transform: scaleX(0.98);
+        opacity: 0.85;
+      }
+    }
+
+    #theme-freetoken .loadingpill {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 121;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--hairline);
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      color: var(--txt);
+      font-size: 13px;
+      line-height: 1;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      pointer-events: none;
+      animation: ft-loading-fade 0.24s ease-out;
+    }
+
+    .dark #theme-freetoken .loadingpill {
+      background: rgba(22, 22, 26, 0.9);
+    }
+
+    @keyframes ft-loading-fade {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    #theme-freetoken .loadingdot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 1.5px solid var(--hairline);
+      border-top-color: var(--blue);
+      animation: ft-loading-spin 0.8s linear infinite;
+    }
+
+    @keyframes ft-loading-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* 无障碍：用户声明减少动态效果时，进度条与转圈改为静态，文案保留 */
+    @media (prefers-reduced-motion: reduce) {
+      #theme-freetoken .loadingbar-fill {
+        animation: none;
+        transform: scaleX(0.4);
+      }
+      #theme-freetoken .loadingpill {
+        animation: none;
+      }
+      #theme-freetoken .loadingdot {
+        animation: none;
+        border-top-color: var(--hairline);
+        background: var(--blue);
+      }
+    }
+
     /* model grid */
     #theme-freetoken .grid {
       display: grid;

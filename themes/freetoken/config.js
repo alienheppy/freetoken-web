@@ -47,6 +47,10 @@ const CONFIG = {
   // 单页（Notion type=Page 的普通页面，如 /about、/links，非模型条目）
   FREETOKEN_PAGE_BACK: '返回首页',
 
+  // 路由切换反馈（新浏览器首次点开未预生成的模型详情页时，服务端要现场
+  // 重建 Notion 数据，页面会停留在原地数百毫秒到数十秒，必须有可见反馈）
+  FREETOKEN_LOADING_TEXT: '正在打开…',
+
   // curl 示例的 base_url：原设计取渠道 api 字段，主题侧 ext 不含该字段，
   // 因此与老站兜底一致（offers[0].api 缺失时用 OpenRouter 兼容端点）
   FREETOKEN_DEFAULT_API_BASE: 'https://openrouter.ai/api/v1',
