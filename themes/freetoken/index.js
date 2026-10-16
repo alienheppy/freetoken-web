@@ -121,7 +121,7 @@ const LayoutPostList = props => {
 /**
  * 详情页：原设计 model/[slug]/page.jsx 逐块移植
  * 顺序：hero（返回/eyebrow/h1/herosub/heropills）→ 模型特性 → 免费获取渠道
- *       → 快速接入（curl + 拷贝）→ Notion 正文 → 页脚报告入口
+ *       （列表下方紧跟「报告过期 / 核实日期」补充行）→ Notion 正文
  *
  * 例外：Notion 里 type 不是 Post 的行（type=Page 的普通单页，例如「关于」「友链」）
  * 没有模型属性，走下面的单页骨架，不渲染「模型特性 / 免费获取渠道 / 核实日期」。
@@ -228,6 +228,15 @@ const LayoutSlug = props => {
             {siteConfig('FREETOKEN_DETAIL_OFFERS_SUB', null, CONFIG)}
           </div>
           <ModelOffers model={model} rows={offerRowsFromPage} />
+
+          {/* 「报告过期 / 核实日期」紧贴渠道列表：这是对渠道数据的补充说明，
+              放在列表正下方才读得连贯；不再单独占一条灰色页脚带 */}
+          <div className='reportline'>
+            信息有误或额度已变化？
+            <SmartLink href={reportHref}>报告过期</SmartLink> · 核实日期{' '}
+            {model.verifiedAt || '待核实'}
+            {stale ? '（信息可能过期，请以官网为准）' : ''}
+          </div>
         </section>
       </div>
 
@@ -241,17 +250,6 @@ const LayoutSlug = props => {
           </div>
         </section>
       )}
-
-      <footer className='pagefoot'>
-        <div className='footin'>
-          <div>
-            信息有误或额度已变化？
-            <SmartLink href={reportHref}>报告过期</SmartLink> · 核实日期{' '}
-            {model.verifiedAt || '待核实'}
-            {stale ? '（信息可能过期，请以官网为准）' : ''}
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }

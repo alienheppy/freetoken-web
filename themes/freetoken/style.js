@@ -1664,10 +1664,17 @@ const Style = () => (
       background: rgba(255, 255, 255, 0.28);
     }
 
-    #theme-freetoken .pagefoot {
-      border-top: 1px solid var(--hairline);
-      margin-top: 90px;
-      background: var(--bg-alt);
+    /* 「报告过期 / 核实日期」：渠道列表正下方的补充说明行（原先独立成灰色页脚带，
+       既与渠道列表割裂，又会在页面底部夹出一条白块） */
+    #theme-freetoken .reportline {
+      margin-top: 16px;
+      font-size: 12px;
+      line-height: 1.9;
+      color: var(--faint);
+    }
+
+    #theme-freetoken .reportline a {
+      color: var(--blue);
     }
 
     #theme-freetoken .missing {

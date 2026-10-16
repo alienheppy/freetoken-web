@@ -751,7 +751,7 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(screen.getByText('没有符合条件的模型。')).toBeInTheDocument()
   })
 
-  test('LayoutSlug 逐块渲染原设计结构（hero/facts/featlist/offers/curl/pagefoot）', () => {
+  test('LayoutSlug 逐块渲染原设计结构（hero/facts/featlist/offers/报告行/curl）', () => {
     const post = {
       id: 'd1',
       title: 'DeepSeek V3',
@@ -831,8 +831,8 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     // Notion 正文（官方内容维护方式保留）
     expect(screen.getByTestId('notion-page')).toBeInTheDocument()
 
-    // 页脚报告入口
-    const foot = container.querySelector('.pagefoot')
+    // 报告入口：紧贴渠道列表下方（不再独立成灰色页脚带）
+    const foot = container.querySelector('.reportline')
     const report = within(foot).getByText('报告过期')
     expect(report.closest('a').getAttribute('href')).toContain(
       'https://github.com/FreeTokenHub/FreeTokenHub/issues/new?template=expired.md&title='
@@ -841,6 +841,8 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       encodeURIComponent('过期报告：DeepSeek V3')
     )
     expect(within(foot).getByText(/核实日期 2026-09-09/)).toBeInTheDocument()
+    // 紧跟「免费获取渠道」区块（渠道列表 → 报告行），中间不再夹灰色页脚带
+    expect(offers.parentElement.querySelector('.reportline')).toBe(foot)
 
     // 未真实探测过的健康声明一律不得出现
     expect(screen.queryByText(/接口正常/)).toBeNull()
@@ -1843,5 +1845,19 @@ describe('themes/freetoken 样式作用域（不污染全局）', () => {
     // 但仍需悬于覆盖层之上，保证「前往官网」外链本身可点
     expect(rule).toMatch(/position:\s*relative/)
     expect(rule).toMatch(/z-index:\s*1/)
+  })
+
+  test('回归守卫：详情页报告行贴在渠道列表下，且不再有独立灰色页脚带', () => {
+    // 「报告过期 / 核实日期」原先是一条灰色 .pagefoot 带：既与渠道列表割裂，
+    // 又会在页面底部与站点页脚之间夹出一条白块（浏览器实测反馈）。
+    // 现在改为渠道列表正下方的 .reportline 普通文字行。
+    expect(styleSource).not.toMatch(/#theme-freetoken \.pagefoot/)
+    const matched = styleSource.match(/#theme-freetoken \.reportline \{([\s\S]*?)\}/)
+    expect(matched).toBeTruthy()
+    expect(matched[1]).not.toMatch(/background:/)
+    // 其它页面（首页 / 关于 / 平台详情）的站点页脚仍保留 110px 间距
+    expect(styleSource).toMatch(
+      /#theme-freetoken :where\(footer:not\(#article-wrapper footer\)\) \{[\s\S]*?margin-top:\s*110px/
+    )
   })
 })
