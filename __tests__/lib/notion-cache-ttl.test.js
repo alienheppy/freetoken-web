@@ -135,4 +135,49 @@ describe('Notion 派生缓存有效期', () => {
     const { entry } = readSingleEntry(dataDir)
     expect(entry.expireTime).toBeNull()
   })
+
+  it('resolveNotionCacheTtl：非构建期原样返回配置值', () => {
+    const { root, mod } = loadCacheManager({ ttl: 300 })
+    roots.push(root)
+
+    expect(mod.resolveNotionCacheTtl(300, 'global_data_default_demo')).toBe(300)
+    expect(mod.resolveNotionCacheTtl(3600, 'site_demo')).toBe(3600)
+    expect(mod.resolveNotionCacheTtl(0, 'site_demo')).toBeNull()
+    expect(mod.resolveNotionCacheTtl(undefined, 'site_demo')).toBeNull()
+  })
+
+  it('resolveNotionCacheTtl：构建期抬到 6 小时下限，避免一次 build 中途过期后重复整站装配', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'notionnext-cache-build-'))
+    roots.push(root)
+    process.env.NOTION_NEXT_NOTION_CACHE_DIR = root
+    process.env.ENABLE_CACHE = 'true'
+    process.env.NOTION_DATA_CACHE_TTL_SECOND = '300'
+
+    const prevLifecycle = process.env.npm_lifecycle_event
+    process.env.npm_lifecycle_event = 'build'
+    jest.resetModules()
+    try {
+      const mod = require('@/lib/cache/cache_manager')
+      const sixHours = 6 * 60 * 60
+
+      // 默认 300 秒 → 构建期抬到 6 小时
+      expect(mod.resolveNotionCacheTtl(300, 'global_data_default_demo')).toBe(
+        sixHours
+      )
+      // 显式配得更大时不被压低
+      expect(
+        mod.resolveNotionCacheTtl(sixHours * 2, 'site_demo')
+      ).toBe(sixHours * 2)
+      // 不设过期 → 构建期同样受下限保护
+      expect(mod.resolveNotionCacheTtl(0, 'site_demo')).toBe(sixHours)
+
+      // 有版本的 page block 会被跨构建复用，必须继续受配置 TTL 约束
+      expect(
+        mod.resolveNotionCacheTtl(300, 'page_block_abc_1735689600000')
+      ).toBe(300)
+    } finally {
+      if (prevLifecycle === undefined) delete process.env.npm_lifecycle_event
+      else process.env.npm_lifecycle_event = prevLifecycle
+    }
+  })
 })
