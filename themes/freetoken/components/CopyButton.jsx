@@ -1,26 +1,45 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
- * 拷贝按钮（原设计 CopyButton.jsx：点击后 1.5 秒内显示“已拷贝”）
+ * 拷贝按钮：仅在 Clipboard API 写入成功后显示“已拷贝”，失败时显示“复制失败”
  */
 export default function CopyButton({ code }) {
-  const [done, setDone] = useState(false)
+  const [status, setStatus] = useState('idle')
+  const timerRef = useRef(null)
 
-  const copy = () => {
+  useEffect(
+    () => () => {
+      clearTimeout(timerRef.current)
+    },
+    []
+  )
+
+  const showStatus = next => {
+    clearTimeout(timerRef.current)
+    setStatus(next)
+    timerRef.current = setTimeout(() => setStatus('idle'), 1500)
+  }
+
+  const copy = async () => {
     try {
-      navigator?.clipboard?.writeText(code)
+      if (!navigator?.clipboard?.writeText)
+        throw new Error('Clipboard unavailable')
+      await navigator.clipboard.writeText(code)
+      showStatus('copied')
     } catch (e) {
-      /* 剪贴板不可用时静默降级，不阻塞交互 */
+      showStatus('failed')
     }
-    setDone(true)
-    setTimeout(() => setDone(false), 1500)
   }
 
   return (
     <button type='button' className='copy' onClick={copy}>
-      {done ? '已拷贝' : '拷贝'}
+      {status === 'copied'
+        ? '已拷贝'
+        : status === 'failed'
+          ? '复制失败'
+          : '拷贝'}
     </button>
   )
 }

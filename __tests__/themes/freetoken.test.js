@@ -65,9 +65,12 @@ import {
   isReviewSoon,
   isStale,
   isValidDateStr,
+  normalizePricingLabel,
   platformSummary,
+  pricingStatus,
   statsFromModels,
   toDateStr,
+  UNKNOWN_PRICING_LABEL,
   verificationLabel
 } from '@/themes/freetoken/lib/adaptModel'
 import {
@@ -94,6 +97,10 @@ import {
   normalizePlatformProfiles,
   stripEmbeddedTables
 } from '@/themes/freetoken/lib/offerBlocks'
+import {
+  isPublishedPostPage,
+  selectOfferPlatformOwnership
+} from '@/lib/freetoken/offerBlocks'
 import ModelToolbar from '@/themes/freetoken/components/ModelToolbar'
 
 /** 首页/列表用的已发布模型（含真实 ext 字段） */
@@ -152,7 +159,7 @@ const mockTagOptions = [
   { name: 'api', count: 1 }
 ]
 
-const mockArchivePosts = { '2024': [mockPosts[0]] }
+const mockArchivePosts = { 2024: [mockPosts[0]] }
 
 /** 菜单 fixture：customMenu（title + SubMenu）与 customNav（name 字段） */
 const mockCustomMenu = [
@@ -172,7 +179,9 @@ const mockCustomNav = [
 ]
 
 const cardNames = () =>
-  screen.getAllByTestId('ft-model-card').map(el => el.querySelector('.mname')?.textContent)
+  screen
+    .getAllByTestId('ft-model-card')
+    .map(el => el.querySelector('.mname')?.textContent)
 
 describe('themes/freetoken 官方 9 Layout 契约', () => {
   test('LayoutBase 渲染子元素、样式作用域在 #theme-freetoken，且没有左侧边栏', () => {
@@ -219,8 +228,14 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
 
     const links = nav.querySelector('.navlinks')
     expect(links.querySelectorAll('a')).toHaveLength(3)
-    expect(within(links).getByText('模型库')).toHaveAttribute('href', '/#models')
-    expect(within(links).getByText('平台')).toHaveAttribute('href', '/#platforms')
+    expect(within(links).getByText('模型库')).toHaveAttribute(
+      'href',
+      '/#models'
+    )
+    expect(within(links).getByText('平台')).toHaveAttribute(
+      'href',
+      '/#platforms'
+    )
     expect(within(links).getByText('关于')).toHaveAttribute('href', '#')
   })
 
@@ -238,8 +253,14 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       '免费的大模型，一目了然。'
     )
     expect(within(hero).getByText('持续更新 · 逐条核实')).toBeInTheDocument()
-    expect(within(hero).getByText('浏览模型')).toHaveAttribute('href', '#models')
-    expect(within(hero).getByText('查看平台')).toHaveAttribute('href', '#platforms')
+    expect(within(hero).getByText('浏览模型')).toHaveAttribute(
+      'href',
+      '#models'
+    )
+    expect(within(hero).getByText('查看平台')).toHaveAttribute(
+      'href',
+      '#platforms'
+    )
 
     // 统计条：原设计四项
     const stats = screen.getByTestId('ft-stats')
@@ -250,7 +271,9 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(within(stats).getByText('最大上下文窗口')).toBeInTheDocument()
     expect(within(stats).getByText('使用成本')).toBeInTheDocument()
     const models = adaptPosts(mockPosts)
-    expect(screen.getByTestId('ft-stat-modelCount').textContent).toBe(String(models.length))
+    expect(screen.getByTestId('ft-stat-modelCount').textContent).toBe(
+      String(models.length)
+    )
     expect(screen.getByTestId('ft-stat-platformCount').textContent).toBe(
       String(platformCards(models).length)
     )
@@ -273,9 +296,11 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(within(sortmenu).getByText('A → Z')).toBeInTheDocument()
     // 供应商 chips = ['全部', ...真实厂商]
     const provbar = toolbar[1]
-    expect(within(provbar).getAllByRole('button').map(b => b.textContent)).toEqual(
-      providerOptions(models)
-    )
+    expect(
+      within(provbar)
+        .getAllByRole('button')
+        .map(b => b.textContent)
+    ).toEqual(providerOptions(models))
 
     // 卡片网格：3 列 .grid + .mcard 结构
     const grid = screen.getByTestId('ft-model-grid')
@@ -293,11 +318,13 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       t => t.textContent
     )
     expect(cardTags.filter(t => t !== '过期')).toEqual(['视觉', '工具'])
-    expect(cardTags.every(t => ['过期', '视觉', '工具', '推理'].includes(t))).toBe(
-      true
-    )
+    expect(
+      cardTags.every(t => ['过期', '视觉', '工具', '推理'].includes(t))
+    ).toBe(true)
     // 具体由哪些平台提供不再出现在卡片上（渠道信息由底栏数量 + 详情页承载）
-    expect(first.querySelector('.mtags').textContent).not.toContain('OpenRouter')
+    expect(first.querySelector('.mtags').textContent).not.toContain(
+      'OpenRouter'
+    )
 
     // 过期条目：原设计的 stale 弱化 + 徽标 + 角标
     const stale = grid.querySelector('.mcard.stale')
@@ -335,7 +362,9 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       />
     )
     expect(screen.getByTestId('ft-stat-modelCount').textContent).toBe('18')
-    expect(screen.getByTestId('ft-stat-maxContext').textContent).toBe(fmtCtx(1000000))
+    expect(screen.getByTestId('ft-stat-maxContext').textContent).toBe(
+      fmtCtx(1000000)
+    )
     const apinex = within(screen.getByTestId('ft-platforms'))
       .getByText('Apinex')
       .closest('[data-testid="ft-platform"]')
@@ -391,11 +420,15 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(cardNames()).toHaveLength(3)
 
     // 排序：A → Z
-    fireEvent.click(within(screen.getByTestId('ft-sortmenu')).getByText('A → Z'))
+    fireEvent.click(
+      within(screen.getByTestId('ft-sortmenu')).getByText('A → Z')
+    )
     expect(cardNames()).toEqual(['Claude 3', 'GPT-4o', 'Legacy Model'])
 
     // 排序：供应商最多（按卡片「模型提供商 N」降序）
-    fireEvent.click(within(screen.getByTestId('ft-sortmenu')).getByText('供应商最多'))
+    fireEvent.click(
+      within(screen.getByTestId('ft-sortmenu')).getByText('供应商最多')
+    )
     expect(cardNames()).toEqual(['Legacy Model', 'GPT-4o', 'Claude 3'])
   })
 
@@ -410,7 +443,9 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(sortdd).toHaveClass('open')
 
     // 选中一项后立即收起
-    fireEvent.click(within(screen.getByTestId('ft-sortmenu')).getByText('A → Z'))
+    fireEvent.click(
+      within(screen.getByTestId('ft-sortmenu')).getByText('A → Z')
+    )
     expect(sortdd).not.toHaveClass('open')
     expect(sortbtn).toHaveAttribute('aria-expanded', 'false')
 
@@ -425,7 +460,12 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     // 用来锁定排序键必须是卡片上的「模型提供商 N」，而非各平台收录数之和。
     const posts = [
       { id: 'a', title: 'One', href: '/a', ext: { platforms: ['P1'] } },
-      { id: 'b', title: 'Three', href: '/b', ext: { platforms: ['P1', 'P2', 'P3'] } },
+      {
+        id: 'b',
+        title: 'Three',
+        href: '/b',
+        ext: { platforms: ['P1', 'P2', 'P3'] }
+      },
       { id: 'c', title: 'Two', href: '/c', ext: { platforms: ['P1', 'P2'] } }
     ]
     const models = adaptPosts(posts)
@@ -436,8 +476,16 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
 
   test('paginate：切片、页码夹取、边界与不分页', () => {
     const items = ['a', 'b', 'c', 'd', 'e']
-    expect(paginate(items, 1, 2)).toEqual({ items: ['a', 'b'], page: 1, totalPage: 3 })
-    expect(paginate(items, 3, 2)).toEqual({ items: ['e'], page: 3, totalPage: 3 })
+    expect(paginate(items, 1, 2)).toEqual({
+      items: ['a', 'b'],
+      page: 1,
+      totalPage: 3
+    })
+    expect(paginate(items, 3, 2)).toEqual({
+      items: ['e'],
+      page: 3,
+      totalPage: 3
+    })
     // 页码越界 → 夹到最后一页（筛选后残留大页码不会出现空页）
     expect(paginate(items, 99, 2).page).toBe(3)
     expect(paginate(items, 99, 2).items).toEqual(['e'])
@@ -502,16 +550,23 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     // 数值列首击降序（先看最大值）
     const byCtx = togglePlatformSort(null, 'context')
     expect(byCtx).toEqual({ key: 'context', dir: 'desc' })
-    expect(togglePlatformSort(byCtx, 'context')).toEqual({ key: 'context', dir: 'asc' })
+    expect(togglePlatformSort(byCtx, 'context')).toEqual({
+      key: 'context',
+      dir: 'asc'
+    })
     // 换列：直接采用新列的首击方向，不沿用上一列方向
-    expect(togglePlatformSort({ key: 'name', dir: 'desc' }, 'providers')).toEqual({
+    expect(
+      togglePlatformSort({ key: 'name', dir: 'desc' }, 'providers')
+    ).toEqual({
       key: 'providers',
       dir: 'desc'
     })
-    expect(togglePlatformSort({ key: 'context', dir: 'desc' }, 'caps')).toEqual({
-      key: 'caps',
-      dir: 'desc'
-    })
+    expect(togglePlatformSort({ key: 'context', dir: 'desc' }, 'caps')).toEqual(
+      {
+        key: 'caps',
+        dir: 'desc'
+      }
+    )
     // 未知列 → 保持默认
     expect(togglePlatformSort({ key: 'name', dir: 'asc' }, 'nope')).toBeNull()
   })
@@ -573,9 +628,10 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     // 末页常驻 → 一键直达末页，不必连点 9 次
     fireEvent.click(within(pager).getByRole('button', { name: '10' }))
     expect(screen.getByTestId('ft-pager-count').textContent).toBe('10/10')
-    expect(
-      within(pager).getByRole('button', { name: '10' })
-    ).toHaveAttribute('aria-current', 'page')
+    expect(within(pager).getByRole('button', { name: '10' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    )
     expect(pageNums()).toEqual(['1', '7', '8', '9', '10'])
 
     // 回到第 1 页，用「…」一次跳 3 页（步长克制，不丢失方向感）
@@ -612,9 +668,9 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     const { container } = render(<LayoutIndex posts={[]} />)
     expect(screen.getByText('没有符合条件的模型。')).toHaveClass('empty')
     expect(container.querySelectorAll('.mcard')).toHaveLength(0)
-    expect(screen.getByText('暂无可汇总的平台数据，等待 Notion 后台同步。')).toHaveClass(
-      'empty'
-    )
+    expect(
+      screen.getByText('暂无可汇总的平台数据，等待 Notion 后台同步。')
+    ).toHaveClass('empty')
     expect(screen.getByTestId('ft-stat-modelCount').textContent).toBe('0')
     expect(screen.getByTestId('ft-stat-maxContext').textContent).toBe('0')
   })
@@ -680,7 +736,11 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
   test('平台卡片整卡可点进入平台详情页，且「前往官网」为独立外链', () => {
     const models = adaptPosts(mockPosts)
     const profiles = [
-      { name: 'OpenRouter', url: 'https://openrouter.ai', certifications: ['平台认证'] }
+      {
+        name: 'OpenRouter',
+        url: 'https://openrouter.ai',
+        certifications: ['平台认证']
+      }
     ]
     const { unmount } = render(
       <LayoutIndex posts={mockPosts} platformProfiles={profiles} />
@@ -718,13 +778,16 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
           context: 131072,
           certifications: ['平台认证'],
           intro: 'OpenRouter 聚合多家模型，提供统一 OpenAI 兼容端点。',
-          guide: '1. 注册 OpenRouter\n2. 生成 API Key\n3. base_url 填 https://openrouter.ai/api/v1'
+          guide:
+            '1. 注册 OpenRouter\n2. 生成 API Key\n3. base_url 填 https://openrouter.ai/api/v1'
         }}
         posts={mockPosts}
       />
     )
     const root = screen.getByTestId('ft-platform-detail')
-    expect(within(root).getByRole('heading', { name: /OpenRouter/ })).toBeInTheDocument()
+    expect(
+      within(root).getByRole('heading', { name: /OpenRouter/ })
+    ).toBeInTheDocument()
     expect(within(root).getByText('平台认证')).toBeInTheDocument()
     expect(within(root).getByText('聚合平台')).toBeInTheDocument()
     expect(within(root).getByText('新账户送额度')).toBeInTheDocument()
@@ -739,7 +802,9 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     const guideSection = within(root).getByTestId('ft-platform-guide')
     expect(within(guideSection).getByText('接入说明。')).toBeInTheDocument()
     expect(
-      within(guideSection).getByText(/base_url 填 https:\/\/openrouter\.ai\/api\/v1/)
+      within(guideSection).getByText(
+        /base_url 填 https:\/\/openrouter\.ai\/api\/v1/
+      )
     ).toBeInTheDocument()
     // Base URL 一键复制：可点按钮，含「复制」提示
     const copyBtn = within(root).getByRole('button', { name: /复制 Base URL/ })
@@ -775,7 +840,10 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
 
     // 空列表兜底 + platform 缺失时不渲染
     const { unmount: unmount2 } = render(
-      <LayoutPlatform platform={{ name: 'ZeroAI', certifications: [] }} posts={[]} />
+      <LayoutPlatform
+        platform={{ name: 'ZeroAI', certifications: [] }}
+        posts={[]}
+      />
     )
     expect(screen.getByText('该平台暂未收录免费模型。')).toHaveClass('empty')
     // 平台档案未填「接入说明」时整个区块不渲染，不留空标题
@@ -783,15 +851,21 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     // 无模型时表头（排序控件）整体不渲染，避免出现空表头
     expect(screen.queryByTestId('ft-platform-sort-name')).toBeNull()
     unmount2()
-    const { container: empty } = render(<LayoutPlatform platform={null} posts={[]} />)
+    const { container: empty } = render(
+      <LayoutPlatform platform={null} posts={[]} />
+    )
     expect(empty.firstChild).toBeNull()
   })
 
   test('平台详情页表头可排序：点列名切换升降序，第三下回到默认顺序', () => {
-    render(<LayoutPlatform platform={{ name: 'OpenRouter' }} posts={mockPosts} />)
+    render(
+      <LayoutPlatform platform={{ name: 'OpenRouter' }} posts={mockPosts} />
+    )
     const table = screen.getByTestId('ft-platform-models')
     const rowNames = () =>
-      within(table).getAllByTestId('ft-platform-model').map(el => el.querySelector('.pmname').textContent)
+      within(table)
+        .getAllByTestId('ft-platform-model')
+        .map(el => el.querySelector('.pmname').textContent)
 
     // 默认顺序 = 传入顺序（与首页模型库「默认」排序同义）
     expect(rowNames()).toEqual(['GPT-4o', 'Claude 3', 'Legacy Model'])
@@ -825,14 +899,15 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(rowNames()).toEqual(['GPT-4o', 'Legacy Model', 'Claude 3'])
 
     // 排序只影响渲染顺序，行本身仍是指向模型详情页的链接
-    expect(within(table).getAllByTestId('ft-platform-model')[0]).toHaveAttribute(
-      'href',
-      '/gpt-4o'
-    )
+    expect(
+      within(table).getAllByTestId('ft-platform-model')[0]
+    ).toHaveAttribute('href', '/gpt-4o')
   })
 
   test('LayoutPostList 渲染分类标题与卡片网格，空列表有兜底文案', () => {
-    const { unmount } = render(<LayoutPostList posts={mockPosts} category='LLM' />)
+    const { unmount } = render(
+      <LayoutPostList posts={mockPosts} category='LLM' />
+    )
     expect(screen.getByText('LLM')).toBeInTheDocument()
     expect(screen.getAllByTestId('ft-model-card')).toHaveLength(3)
     unmount()
@@ -850,16 +925,40 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       blockMap: {
         // 正文含一段模型级叙述（渲染）；内嵌表由 offerRowsOverride 模拟，正文不重复
         block: {
-          'p1': { value: { value: { id: 'p1', type: 'page', content: ['t1'] } } },
-          't1': { value: { value: { id: 't1', type: 'text', properties: { title: [['接入说明见渠道卡']] } } } }
+          p1: { value: { value: { id: 'p1', type: 'page', content: ['t1'] } } },
+          t1: {
+            value: {
+              value: {
+                id: 't1',
+                type: 'text',
+                properties: { title: [['接入说明见渠道卡']] }
+              }
+            }
+          }
         },
         collection_view: {},
         collection: {},
         collection_query: {}
       },
       __offerRows: [
-        { name: 'DeepSeek 开放平台', url: 'https://platform.deepseek.com', desc: '注册赠送额度，用完需充值', context: 128, verified: true, verifiedAt: '', limits: '注册赠送额度，用完需充值' },
-        { name: '火山方舟', url: 'https://volcengine.com', desc: '注册赠送额度，用完需充值', context: 128, verified: true, verifiedAt: '', limits: '注册赠送额度，用完需充值' }
+        {
+          name: 'DeepSeek 开放平台',
+          url: 'https://platform.deepseek.com',
+          desc: '注册赠送额度，用完需充值',
+          context: 128,
+          verified: true,
+          verifiedAt: '',
+          limits: '注册赠送额度，用完需充值'
+        },
+        {
+          name: '火山方舟',
+          url: 'https://volcengine.com',
+          desc: '注册赠送额度，用完需充值',
+          context: 128,
+          verified: true,
+          verifiedAt: '',
+          limits: '注册赠送额度，用完需充值'
+        }
       ],
       ext: {
         provider: 'DeepSeek',
@@ -872,21 +971,32 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
         sourceUrl: 'https://platform.deepseek.com'
       }
     }
-    const { container } = render(<LayoutSlug post={post} offerRowsOverride={post.__offerRows} />)
+    const { container } = render(
+      <LayoutSlug post={post} offerRowsOverride={post.__offerRows} />
+    )
 
     // 返回模型库 + eyebrow + h1 + herosub + heropills
     const hero = screen.getByTestId('ft-detail-hero')
-    expect(within(hero).getByText('返回模型库')).toHaveAttribute('href', '/#models')
+    expect(within(hero).getByText('返回模型库')).toHaveAttribute(
+      'href',
+      '/#models'
+    )
     expect(hero.querySelector('.eyebrow').textContent).toBe('DeepSeek')
-    expect(within(hero).getByRole('heading', { name: 'DeepSeek V3' })).toBeInTheDocument()
+    expect(
+      within(hero).getByRole('heading', { name: 'DeepSeek V3' })
+    ).toBeInTheDocument()
     expect(hero.querySelector('.herosub').textContent).toBe('性价比之选')
-    const pills = Array.from(hero.querySelectorAll('.hpill')).map(p => p.textContent)
-    expect(pills[0]).toBe('免费 ¥0')
+    const pills = Array.from(hero.querySelectorAll('.hpill')).map(
+      p => p.textContent
+    )
+    expect(pills[0]).toBe('未标注')
     expect(pills[1]).toBe('上下文 128K')
     expect(pills).toContain('工具调用')
     expect(pills).toContain('深度推理')
     expect(pills).toContain('OpenAI 兼容')
-    expect(pills.some(t => /^核实 2026-09-09 · 距今 -?\d+ 天$/.test(t))).toBe(true)
+    expect(pills.some(t => /^核实 2026-09-09 · 距今 -?\d+ 天$/.test(t))).toBe(
+      true
+    )
 
     // 模型特性：facts 六格 + featlist
     const facts = screen.getByTestId('ft-facts')
@@ -894,18 +1004,25 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(within(facts).getByText('128K tokens')).toBeInTheDocument()
     expect(within(facts).getAllByText('文本')).toHaveLength(2) // 输入模态 + 输出模态
     expect(within(facts).getAllByText('支持')).toHaveLength(2) // 工具调用 + 深度推理
-    expect(within(facts).getByText('免费')).toBeInTheDocument()
+    expect(within(facts).getByText('未标注')).toBeInTheDocument()
     const featlist = screen.getByTestId('ft-featlist')
     expect(within(featlist).getByText('长上下文')).toBeInTheDocument()
     expect(within(featlist).getByText('Agent 就绪')).toBeInTheDocument()
     expect(within(featlist).getByText('深度推理')).toBeInTheDocument()
-    expect(within(featlist).getByText('零成本')).toBeInTheDocument()
+    expect(within(featlist).getByText('渠道免费额度')).toBeInTheDocument()
+    expect(
+      within(featlist).getByText(
+        '符合渠道免费额度时可免费使用，额度与规则以渠道为准'
+      )
+    ).toBeInTheDocument()
 
     // 免费获取渠道：渠道卡（每行名称 + 前往官网；base_url/额度等各自承载）
     const offers = screen.getByTestId('ft-offers')
     expect(within(offers).getByText('DeepSeek 开放平台')).toBeInTheDocument()
     expect(within(offers).getByText('火山方舟')).toBeInTheDocument()
-    expect(within(offers).getAllByText('注册赠送额度，用完需充值')).toHaveLength(2)
+    expect(
+      within(offers).getAllByText('注册赠送额度，用完需充值')
+    ).toHaveLength(2)
     expect(screen.getAllByTestId('ft-offer-card')).toHaveLength(2)
     const goLinks = within(offers).getAllByText('前往官网')
     expect(goLinks).toHaveLength(2)
@@ -957,6 +1074,28 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(screen.getByText(/信息可能过期，请以官网为准/)).toBeInTheDocument()
   })
 
+  test('LayoutSlug 明确付费时不出现免费 ¥0 / 零成本 / 渠道免费额度', () => {
+    const post = {
+      id: 'paid-model',
+      title: 'Paid Model',
+      href: '/paid-model',
+      定价: ['付费'],
+      ext: {
+        provider: 'Vendor',
+        platforms: ['Vendor Cloud'],
+        verificationStatus: 'verified'
+      }
+    }
+    render(<LayoutSlug post={post} offerRowsOverride={[]} />)
+
+    const hero = screen.getByTestId('ft-detail-hero')
+    expect(within(hero).getByText('付费')).toBeInTheDocument()
+    expect(screen.getByTestId('ft-facts')).toHaveTextContent('付费')
+    expect(screen.queryByText('免费 ¥0')).toBeNull()
+    expect(screen.queryByText('零成本')).toBeNull()
+    expect(screen.queryByText('渠道免费额度')).toBeNull()
+  })
+
   test('LayoutSlug 无渠道数据时用原设计空态，来源链接仅允许 http(s)', () => {
     const post = {
       id: 'd3',
@@ -989,7 +1128,15 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       blockMap: {
         block: {
           p1: { value: { value: { id: 'p1', type: 'page', content: ['t1'] } } },
-          t1: { value: { value: { id: 't1', type: 'text', properties: { title: [['正文']] } } } }
+          t1: {
+            value: {
+              value: {
+                id: 't1',
+                type: 'text',
+                properties: { title: [['正文']] }
+              }
+            }
+          }
         }
       },
       ext: {}
@@ -1090,7 +1237,9 @@ describe('themes/freetoken 菜单与可访问性', () => {
   })
 
   test('customMenu 的 SubMenu 以同样式的下拉渲染', () => {
-    render(<LayoutBase customMenu={mockCustomMenu} siteInfo={{ title: 'Hub' }} />)
+    render(
+      <LayoutBase customMenu={mockCustomMenu} siteInfo={{ title: 'Hub' }} />
+    )
     const menu = screen.getByTestId('ft-navmenu')
     expect(within(menu).getByText('开源模型')).toHaveAttribute(
       'href',
@@ -1135,7 +1284,11 @@ const makePost = overrides => ({
   title: 'GPT-4o',
   summary: 'desc',
   href: '/gpt-4o',
-  ext: { provider: 'OpenAI', platforms: ['OpenAI'], verificationStatus: 'verified' },
+  ext: {
+    provider: 'OpenAI',
+    platforms: ['OpenAI'],
+    verificationStatus: 'verified'
+  },
   ...overrides
 })
 
@@ -1162,7 +1315,11 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
     expect(model.platforms).toEqual([])
     expect(model.sourceUrl).toBe('')
     expect(model.verifiedAt).toBe('')
-    expect(model.capabilities).toEqual({ vision: false, tools: false, reasoning: false })
+    expect(model.capabilities).toEqual({
+      vision: false,
+      tools: false,
+      reasoning: false
+    })
 
     const empty = adaptPost(null)
     expect(empty.verificationStatus).toBe('pending')
@@ -1176,22 +1333,27 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
   test('verificationStatus：缺失/未知/草稿一律 pending，仅显式枚举通过', () => {
     expect(adaptPost(makePost({ ext: {} })).verificationStatus).toBe('pending')
     expect(
-      adaptPost(makePost({ ext: { verificationStatus: 'draft' } })).verificationStatus
+      adaptPost(makePost({ ext: { verificationStatus: 'draft' } }))
+        .verificationStatus
     ).toBe('pending')
     expect(
-      adaptPost(makePost({ ext: { verificationStatus: '已核实' } })).verificationStatus
+      adaptPost(makePost({ ext: { verificationStatus: '已核实' } }))
+        .verificationStatus
     ).toBe('pending')
     expect(
-      adaptPost(makePost({ ext: { verificationStatus: '  ' } })).verificationStatus
+      adaptPost(makePost({ ext: { verificationStatus: '  ' } }))
+        .verificationStatus
     ).toBe('pending')
     expect(
       adaptPost(makePost({ ext: { verificationStatus: 1 } })).verificationStatus
     ).toBe('pending')
     expect(
-      adaptPost(makePost({ ext: { verificationStatus: 'verified' } })).verificationStatus
+      adaptPost(makePost({ ext: { verificationStatus: 'verified' } }))
+        .verificationStatus
     ).toBe('verified')
     expect(
-      adaptPost(makePost({ ext: { verificationStatus: 'duplicate' } })).verificationStatus
+      adaptPost(makePost({ ext: { verificationStatus: 'duplicate' } }))
+        .verificationStatus
     ).toBe('duplicate')
     expect(verificationLabel('verified')).toBe('已核实')
     expect(verificationLabel('unknown-value')).toBe('待核实')
@@ -1205,18 +1367,34 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
         }
       })
     )
-    expect(model.capabilities).toEqual({ vision: true, tools: true, reasoning: false })
+    expect(model.capabilities).toEqual({
+      vision: true,
+      tools: true,
+      reasoning: false
+    })
     // Boolean('false') === true 的坑不允许出现；1/0/'yes' 一律 false
     const tricky = adaptPost(
       makePost({
         ext: { capabilities: { vision: 1, tools: 'yes', reasoning: ' TRUE ' } }
       })
     )
-    expect(tricky.capabilities).toEqual({ vision: false, tools: false, reasoning: true })
+    expect(tricky.capabilities).toEqual({
+      vision: false,
+      tools: false,
+      reasoning: true
+    })
     const broken = adaptPost(makePost({ ext: { capabilities: 'true' } }))
-    expect(broken.capabilities).toEqual({ vision: false, tools: false, reasoning: false })
+    expect(broken.capabilities).toEqual({
+      vision: false,
+      tools: false,
+      reasoning: false
+    })
     const arr = adaptPost(makePost({ ext: { capabilities: ['true'] } }))
-    expect(arr.capabilities).toEqual({ vision: false, tools: false, reasoning: false })
+    expect(arr.capabilities).toEqual({
+      vision: false,
+      tools: false,
+      reasoning: false
+    })
     // 派生别名与 capabilities 同源
     expect(model.vision).toBe(true)
     expect(model.reasoning).toBe(false)
@@ -1224,22 +1402,36 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
 
   test('platforms 支持数组与逗号顿号字符串并去重', () => {
     const fromArray = adaptPost(
-      makePost({ ext: { platforms: ['SiliconFlow', ' SiliconFlow ', '', 'DashScope', 42] } })
+      makePost({
+        ext: {
+          platforms: ['SiliconFlow', ' SiliconFlow ', '', 'DashScope', 42]
+        }
+      })
     )
     expect(fromArray.platforms).toEqual(['SiliconFlow', 'DashScope'])
 
     const fromString = adaptPost(
-      makePost({ ext: { platforms: 'OpenRouter, 智谱开放平台、OpenRouter，Groq Cloud' } })
+      makePost({
+        ext: { platforms: 'OpenRouter, 智谱开放平台、OpenRouter，Groq Cloud' }
+      })
     )
-    expect(fromString.platforms).toEqual(['OpenRouter', '智谱开放平台', 'Groq Cloud'])
+    expect(fromString.platforms).toEqual([
+      'OpenRouter',
+      '智谱开放平台',
+      'Groq Cloud'
+    ])
 
     const none = adaptPost(makePost({ ext: { platforms: 42 } }))
     expect(none.platforms).toEqual([])
   })
 
   test('context 取有限正数，否则 0；fmtCtx 与原设计同口径（1024 进制）', () => {
-    expect(adaptPost(makePost({ ext: { context: 131072 } })).context).toBe(131072)
-    expect(adaptPost(makePost({ ext: { context: '131072' } })).context).toBe(131072)
+    expect(adaptPost(makePost({ ext: { context: 131072 } })).context).toBe(
+      131072
+    )
+    expect(adaptPost(makePost({ ext: { context: '131072' } })).context).toBe(
+      131072
+    )
     expect(adaptPost(makePost({ ext: { context: 0 } })).context).toBe(0)
     expect(adaptPost(makePost({ ext: { context: -5 } })).context).toBe(0)
     expect(adaptPost(makePost({ ext: { context: Infinity } })).context).toBe(0)
@@ -1256,16 +1448,23 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
 
   test('sourceUrl 仅 http(s)，其余降级为空', () => {
     expect(
-      adaptPost(makePost({ ext: { sourceUrl: 'https://openrouter.ai' } })).sourceUrl
+      adaptPost(makePost({ ext: { sourceUrl: 'https://openrouter.ai' } }))
+        .sourceUrl
     ).toBe('https://openrouter.ai')
     expect(
-      adaptPost(makePost({ ext: { sourceUrl: 'http://example.com/x' } })).sourceUrl
+      adaptPost(makePost({ ext: { sourceUrl: 'http://example.com/x' } }))
+        .sourceUrl
     ).toBe('http://example.com/x')
     expect(
-      adaptPost(makePost({ ext: { sourceUrl: 'javascript:alert(1)' } })).sourceUrl
+      adaptPost(makePost({ ext: { sourceUrl: 'javascript:alert(1)' } }))
+        .sourceUrl
     ).toBe('')
-    expect(adaptPost(makePost({ ext: { sourceUrl: 'ftp://x.y' } })).sourceUrl).toBe('')
-    expect(adaptPost(makePost({ ext: { sourceUrl: '/relative' } })).sourceUrl).toBe('')
+    expect(
+      adaptPost(makePost({ ext: { sourceUrl: 'ftp://x.y' } })).sourceUrl
+    ).toBe('')
+    expect(
+      adaptPost(makePost({ ext: { sourceUrl: '/relative' } })).sourceUrl
+    ).toBe('')
   })
 
   test('href 保留官方 post.href 原值，名称/日期等字段严格校验', () => {
@@ -1293,12 +1492,16 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
 
   test('ext 为坏 JSON / null / 数组 / 标量字符串时不炸站', () => {
     expect(adaptPost(makePost({ ext: '{bad json' })).platforms).toEqual([])
-    expect(adaptPost(makePost({ ext: 'null' })).verificationStatus).toBe('pending')
+    expect(adaptPost(makePost({ ext: 'null' })).verificationStatus).toBe(
+      'pending'
+    )
     expect(adaptPost(makePost({ ext: '[]' })).context).toBe(0)
     expect(adaptPost(makePost({ ext: '42' })).sourceUrl).toBe('')
     // 官方 convertToJSON 去空白路径：合法 JSON 字符串仍可解析
     const parsed = adaptPost(
-      makePost({ ext: '{"platforms":["Groq Cloud"],"capabilities":{"tools":"true"}}' })
+      makePost({
+        ext: '{"platforms":["Groq Cloud"],"capabilities":{"tools":"true"}}'
+      })
     )
     expect(parsed.platforms).toEqual(['Groq Cloud'])
     expect(parsed.tools).toBe(true)
@@ -1336,7 +1539,12 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
     expect(model.pricing).toBe('免费')
 
     const textOnly = adaptPost(
-      makePost({ 输入模态: ['文本'], 工具调用: 'No', 深度推理: 'Yes', 定价: ['付费'] })
+      makePost({
+        输入模态: ['文本'],
+        工具调用: 'No',
+        深度推理: 'Yes',
+        定价: ['付费']
+      })
     )
     expect(textOnly.vision).toBe(false)
     expect(textOnly.tools).toBe(false)
@@ -1344,9 +1552,23 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
     expect(textOnly.pricing).toBe('付费')
   })
 
+  test('定价缺失不再默认免费；免费/付费/混合文案使用严格语义', () => {
+    expect(normalizePricingLabel('  ')).toBe(UNKNOWN_PRICING_LABEL)
+    expect(pricingStatus('')).toBe('unknown')
+    expect(pricingStatus('免费')).toBe('free')
+    expect(pricingStatus('¥0')).toBe('free')
+    expect(pricingStatus('付费')).toBe('paid')
+    expect(pricingStatus('免费额度，用完后按量计费')).toBe('paid')
+    expect(pricingStatus('价格待定')).toBe('unknown')
+  })
+
   test('Notion 直属属性缺失时回退历史 ext.capabilities（不破坏旧数据）', () => {
     const model = adaptPost(
-      makePost({ ext: { capabilities: { vision: true, tools: 'true', reasoning: 'false' } } })
+      makePost({
+        ext: {
+          capabilities: { vision: true, tools: 'true', reasoning: 'false' }
+        }
+      })
     )
     expect(model.vision).toBe(true)
     expect(model.tools).toBe(true)
@@ -1354,7 +1576,7 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
     // 未填属性时使用安全默认
     expect(model.inputModality).toBe('文本')
     expect(model.outputModality).toBe('文本')
-    expect(model.pricing).toBe('免费')
+    expect(model.pricing).toBe(UNKNOWN_PRICING_LABEL)
   })
 
   test('主库「上下文」按 K 语义 ×1024；完整 token 数按原值；ext.context 兜底', () => {
@@ -1362,16 +1584,26 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
     const k128 = adaptPost(makePost({ 上下文: 128, ext: {} }))
     expect(k128.context).toBe(131072)
     expect(fmtCtx(k128.context)).toBe('128K')
-    expect(adaptPost(makePost({ 上下文: '1024', ext: {} })).context).toBe(1048576)
+    expect(adaptPost(makePost({ 上下文: '1024', ext: {} })).context).toBe(
+      1048576
+    )
     // 1024K = 1048576 tokens，按 fmtCtx 既有口径显示为 1.0M
-    expect(fmtCtx(adaptPost(makePost({ 上下文: 1024, ext: {} })).context)).toBe('1.0M')
+    expect(fmtCtx(adaptPost(makePost({ 上下文: 1024, ext: {} })).context)).toBe(
+      '1.0M'
+    )
     // 完整 token 数（>= 4096）按原值
-    expect(adaptPost(makePost({ 上下文: 131072, ext: {} })).context).toBe(131072)
+    expect(adaptPost(makePost({ 上下文: 131072, ext: {} })).context).toBe(
+      131072
+    )
     expect(adaptPost(makePost({ 上下文: 65536, ext: {} })).context).toBe(65536)
-    expect(fmtCtx(adaptPost(makePost({ 上下文: 65536, ext: {} })).context)).toBe('64K')
+    expect(
+      fmtCtx(adaptPost(makePost({ 上下文: 65536, ext: {} })).context)
+    ).toBe('64K')
     // 主库缺失 → ext.context（tokens 原值）
     expect(adaptPost(makePost({ ext: { context: 8192 } })).context).toBe(8192)
-    expect(adaptPost(makePost({ 上下文: 0, ext: { context: 8192 } })).context).toBe(8192)
+    expect(
+      adaptPost(makePost({ 上下文: 0, ext: { context: 8192 } })).context
+    ).toBe(8192)
   })
 })
 
@@ -1444,7 +1676,11 @@ describe('themes/freetoken lib/adaptModel 日期与统计', () => {
     const stats = statsFromModels(models, today)
     expect(stats.modelCount).toBe(3)
     expect(stats.platformCount).toBe(2) // OpenRouter + Groq Cloud
-    expect(stats.capabilityCounts).toEqual({ vision: 2, tools: 1, reasoning: 1 })
+    expect(stats.capabilityCounts).toEqual({
+      vision: 2,
+      tools: 1,
+      reasoning: 1
+    })
     // a: 30 天内到期；b: 距今 > 30 天不临近；c: 无 expiresHint 且核实超 30 天
     expect(stats.reviewSoonCount).toBe(2)
 
@@ -1456,7 +1692,9 @@ describe('themes/freetoken lib/adaptModel 日期与统计', () => {
       reviewSoonCount: 0
     })
     expect(statsFromModels([null, 'x', 1], today).modelCount).toBe(0)
-    expect(statsFromModels(models, new Date(2026, 8, 10)).reviewSoonCount).toBe(2)
+    expect(statsFromModels(models, new Date(2026, 8, 10)).reviewSoonCount).toBe(
+      2
+    )
   })
 
   test('platformSummary 平台并集去重并按模型数降序', () => {
@@ -1487,7 +1725,9 @@ describe('themes/freetoken lib/modelView 视图层工具', () => {
   })
 
   test('filterAndSortModels 与原设计 page.jsx 行为一致', () => {
-    expect(filterAndSortModels(models, { kw: 'gpt' }).map(m => m.name)).toEqual(['GPT-4o'])
+    expect(filterAndSortModels(models, { kw: 'gpt' }).map(m => m.name)).toEqual(
+      ['GPT-4o']
+    )
     expect(
       filterAndSortModels(models, { filter: 'vision' }).map(m => m.name)
     ).toEqual(['GPT-4o'])
@@ -1509,7 +1749,11 @@ describe('themes/freetoken lib/modelView 视图层工具', () => {
   test('platformCards 只输出可核实字段：收录数/核实日期照旧，认证标签驱动徽标', () => {
     // 不传平台档案：无认证标签 → 一律非 certified，但实测计数照旧输出
     const cards = platformCards(models)
-    expect(cards.map(c => c.name)).toEqual(['Groq Cloud', 'OpenRouter', 'GitHub Models'])
+    expect(cards.map(c => c.name)).toEqual([
+      'Groq Cloud',
+      'OpenRouter',
+      'GitHub Models'
+    ])
     const openrouter = cards.find(c => c.name === 'OpenRouter')
     expect(openrouter.count).toBe(2)
     expect(openrouter.verifiedCount).toBe(2)
@@ -1544,8 +1788,12 @@ describe('themes/freetoken lib/modelView 视图层工具', () => {
     expect(daysFrom('2026-09-20', '2026-09-10')).toBe(10)
     expect(daysFrom('2026-09-01', '2026-09-10')).toBe(-9)
     expect(daysFrom('', '2026-09-10')).toBe(0)
-    expect(staleTitle({ expiresHint: '2020-01-02', verifiedAt: '2020-01-01' }, '2026-09-10'))
-      .toContain('截止提示 2020-01-02 已过')
+    expect(
+      staleTitle(
+        { expiresHint: '2020-01-02', verifiedAt: '2020-01-01' },
+        '2026-09-10'
+      )
+    ).toContain('截止提示 2020-01-02 已过')
     expect(staleTitle({ verifiedAt: '2026-01-01' }, '2026-09-10')).toContain(
       '距今超 30 天'
     )
@@ -1571,29 +1819,43 @@ describe('themes/freetoken lib/modelView 视图层工具', () => {
   test('platformCards：服务端全量 platformCounts 优先于模型派生计数（首页分页不再少算）', () => {
     // 首页只下发截断后的模型（Apinex 只剩 1 条），服务端全量口径给出真实 9
     const truncated = adaptPosts([mockPosts[0]]) // OpenRouter + GitHub Models
-    const cards = platformCards(truncated, null, { OpenRouter: 9, 'GitHub Models': 1 })
+    const cards = platformCards(truncated, null, {
+      OpenRouter: 9,
+      'GitHub Models': 1
+    })
     expect(cards.find(c => c.name === 'OpenRouter').count).toBe(9)
     expect(cards.find(c => c.name === 'GitHub Models').count).toBe(1)
     // 未下发该平台 → 沿用模型派生值
     expect(
-      platformCards(truncated, null, { Apinex: 9 }).find(c => c.name === 'OpenRouter').count
+      platformCards(truncated, null, { Apinex: 9 }).find(
+        c => c.name === 'OpenRouter'
+      ).count
     ).toBe(1)
     // 未传第三参（旧调用）→ 完全回退模型派生值，行为不变
-    expect(platformCards(truncated).find(c => c.name === 'OpenRouter').count).toBe(1)
+    expect(
+      platformCards(truncated).find(c => c.name === 'OpenRouter').count
+    ).toBe(1)
     // 坏值（非有限数）不参与覆盖
     expect(
-      platformCards(truncated, null, { OpenRouter: 'x' }).find(c => c.name === 'OpenRouter').count
+      platformCards(truncated, null, { OpenRouter: 'x' }).find(
+        c => c.name === 'OpenRouter'
+      ).count
     ).toBe(1)
   })
 
   test('buildCurl / offerRows 输出原设计结构', () => {
-    const code = buildCurl({ id: 'nex-agi/nex-n2.5-mini:free' }, 'https://openrouter.ai/api/v1/')
+    const code = buildCurl(
+      { id: 'nex-agi/nex-n2.5-mini:free' },
+      'https://openrouter.ai/api/v1/'
+    )
     expect(code.split('\n')[0]).toBe(
       'curl https://openrouter.ai/api/v1/chat/completions \\'
     )
     expect(code).toContain('"model": "nex-agi/nex-n2.5-mini:free"')
     expect(code).toContain('-H "Authorization: Bearer ***"')
-    expect(buildCurl({ id: 'x' }, '')).toContain('curl https://openrouter.ai/api/v1/')
+    expect(buildCurl({ id: 'x' }, '')).toContain(
+      'curl https://openrouter.ai/api/v1/'
+    )
     expect(
       resolveCurlModelId(
         { modelId: 'provider/row-model' },
@@ -1620,19 +1882,107 @@ describe('themes/freetoken lib/offerBlocks 渠道解析与正文剔除', () => {
   // 内嵌明细表：collection_view 块 d002… 指向子表 d4e2…，两行 Kiraai / Pkay
   const makeBlockMap = () => ({
     block: {
-      'd002-1': { value: { value: { id: 'd002-1', type: 'collection_view', collection_id: 'd4e2', parent_id: 'page-1', parent_table: 'block' } } },
-      'page-1': { value: { value: { id: 'page-1', type: 'page', content: ['d002-1', 'txt-1'] } } },
-      'txt-1': { value: { value: { id: 'txt-1', type: 'text', properties: { title: [['操作步骤']] } } } },
+      'd002-1': {
+        value: {
+          value: {
+            id: 'd002-1',
+            type: 'collection_view',
+            collection_id: 'd4e2',
+            parent_id: 'page-1',
+            parent_table: 'block'
+          }
+        }
+      },
+      'page-1': {
+        value: {
+          value: { id: 'page-1', type: 'page', content: ['d002-1', 'txt-1'] }
+        }
+      },
+      'txt-1': {
+        value: {
+          value: {
+            id: 'txt-1',
+            type: 'text',
+            properties: { title: [['操作步骤']] }
+          }
+        }
+      },
       // 行 properties 以 schema key（短 id）为键，与 Notion 实际数据形状一致
-      'row-k': { value: { value: { id: 'row-k', type: 'page', parent_id: 'd4e2', parent_table: 'collection', properties: { a: [['Kiraai']], b: [['https://kiraai.vn', [['a', 'https://kiraai.vn']]]], c: [['很好']], d: [['128']], e: [['https://kiraai.vn/api/v1']], f: [['1. 注册\\n2. 建 Key']], g: [['1.5 亿代币']] } } } },
-      'row-p': { value: { value: { id: 'row-p', type: 'page', parent_id: 'd4e2', parent_table: 'collection', properties: { a: [['Pkay']], b: [['https://pkay.fun', [['a', 'https://pkay.fun']]]], c: [['很棒']], d: [['12000']], e: [['https://api.pkay.fun/v1']], f: [['看官网']], g: [['25 亿令牌']] } } } }
+      'row-k': {
+        value: {
+          value: {
+            id: 'row-k',
+            type: 'page',
+            parent_id: 'd4e2',
+            parent_table: 'collection',
+            properties: {
+              a: [['Kiraai']],
+              b: [['https://kiraai.vn', [['a', 'https://kiraai.vn']]]],
+              c: [['很好']],
+              d: [['128']],
+              e: [['https://kiraai.vn/api/v1']],
+              f: [['1. 注册\\n2. 建 Key']],
+              g: [['1.5 亿代币']]
+            }
+          }
+        }
+      },
+      'row-p': {
+        value: {
+          value: {
+            id: 'row-p',
+            type: 'page',
+            parent_id: 'd4e2',
+            parent_table: 'collection',
+            properties: {
+              a: [['Pkay']],
+              b: [['https://pkay.fun', [['a', 'https://pkay.fun']]]],
+              c: [['很棒']],
+              d: [['12000']],
+              e: [['https://api.pkay.fun/v1']],
+              f: [['看官网']],
+              g: [['25 亿令牌']]
+            }
+          }
+        }
+      }
     },
     collection: {
-      d4e2: { value: { value: { id: 'd4e2', schema: { 'a': { name: '名称', type: 'title' }, 'b': { name: '网址', type: 'url' }, 'c': { name: '供应商简介', type: 'text' }, 'd': { name: 'contextK', type: 'number' }, 'e': { name: 'baseUrl', type: 'text' }, 'f': { name: '接入说明', type: 'text' }, 'g': { name: '免费额度', type: 'text' } } } } },
-      main: { value: { value: { id: 'main', schema: { 's': { name: 'status' }, 'su': { name: 'summary' } } } } }
+      d4e2: {
+        value: {
+          value: {
+            id: 'd4e2',
+            schema: {
+              a: { name: '名称', type: 'title' },
+              b: { name: '网址', type: 'url' },
+              c: { name: '供应商简介', type: 'text' },
+              d: { name: 'contextK', type: 'number' },
+              e: { name: 'baseUrl', type: 'text' },
+              f: { name: '接入说明', type: 'text' },
+              g: { name: '免费额度', type: 'text' }
+            }
+          }
+        }
+      },
+      main: {
+        value: {
+          value: {
+            id: 'main',
+            schema: { s: { name: 'status' }, su: { name: 'summary' } }
+          }
+        }
+      }
     },
     collection_view: {
-      v1: { value: { value: { id: 'v1', format: { collection_pointer: { id: 'd4e2' } }, page_sort: ['row-k', 'row-p'] } } }
+      v1: {
+        value: {
+          value: {
+            id: 'v1',
+            format: { collection_pointer: { id: 'd4e2' } },
+            page_sort: ['row-k', 'row-p']
+          }
+        }
+      }
     },
     collection_query: {}
   })
@@ -1652,10 +2002,108 @@ describe('themes/freetoken lib/offerBlocks 渠道解析与正文剔除', () => {
   })
 
   test('collectOfferPlatformNames：渠道子表 → 平台名去重数组（与渠道行同源）', () => {
-    expect(collectOfferPlatformNames(makeBlockMap())).toEqual(['Kiraai', 'Pkay'])
+    expect(collectOfferPlatformNames(makeBlockMap())).toEqual([
+      'Kiraai',
+      'Pkay'
+    ])
     // 坏值/无渠道表 → []
     expect(collectOfferPlatformNames(null)).toEqual([])
     expect(collectOfferPlatformNames({ block: {} })).toEqual([])
+  })
+
+  test('collectOfferPlatformNames：大小写/首尾空白归一后去重，保留首次展示值', () => {
+    const bm = makeBlockMap()
+    bm.block['row-k2'] = {
+      value: {
+        value: {
+          id: 'row-k2',
+          type: 'page',
+          parent_id: 'd4e2',
+          parent_table: 'collection',
+          properties: { a: [[' kiraai ']] }
+        }
+      }
+    }
+    bm.collection_view.v1.value.value.page_sort.push('row-k2')
+    expect(collectOfferRows(bm).map(r => r.name)).toEqual([
+      'Kiraai',
+      'Pkay',
+      ' kiraai '
+    ])
+    expect(collectOfferPlatformNames(bm)).toEqual(['Kiraai', 'Pkay'])
+  })
+
+  test('selectOfferPlatformOwnership：正文表非空时覆盖空值/漏填/错误旧值', () => {
+    const channelPlatforms = ['Kiraai', 'Pkay']
+    expect(
+      selectOfferPlatformOwnership({ channelPlatforms, existingPlatforms: [] })
+    ).toEqual({
+      platforms: channelPlatforms,
+      fromChannelTable: true,
+      changed: false
+    })
+    expect(
+      selectOfferPlatformOwnership({
+        channelPlatforms,
+        existingPlatforms: ['Kiraai']
+      })
+    ).toEqual({
+      platforms: channelPlatforms,
+      fromChannelTable: true,
+      changed: true
+    })
+    expect(
+      selectOfferPlatformOwnership({
+        channelPlatforms,
+        existingPlatforms: ['Legacy Only']
+      })
+    ).toEqual({
+      platforms: channelPlatforms,
+      fromChannelTable: true,
+      changed: true
+    })
+  })
+
+  test('selectOfferPlatformOwnership：正文表为空时保留旧 ext.platforms', () => {
+    const existingPlatforms = 'Kiraai、Pkay'
+    expect(
+      selectOfferPlatformOwnership({ channelPlatforms: [], existingPlatforms })
+    ).toEqual({
+      platforms: existingPlatforms,
+      fromChannelTable: false,
+      changed: false
+    })
+  })
+
+  test('selectOfferPlatformOwnership：仅大小写/空白/重复差异不触发漂移 warning', () => {
+    expect(
+      selectOfferPlatformOwnership({
+        channelPlatforms: [' Kiraai ', 'kiraai', 'Pkay', ' PKAY '],
+        existingPlatforms: ['kiraai', 'pkay']
+      })
+    ).toEqual({
+      platforms: ['Kiraai', 'Pkay'],
+      fromChannelTable: true,
+      changed: false
+    })
+  })
+
+  test('isPublishedPostPage：Draft/Invisible/非 Post 不参与正文渠道表回填', () => {
+    expect(
+      isPublishedPostPage({ id: 'p', type: 'Post', status: 'Published' })
+    ).toBe(true)
+    expect(
+      isPublishedPostPage({ id: 'p', type: 'Post', status: 'Invisible' })
+    ).toBe(false)
+    expect(
+      isPublishedPostPage({ id: 'p', type: 'Post', status: 'Draft' })
+    ).toBe(false)
+    expect(
+      isPublishedPostPage({ id: 'p', type: 'Page', status: 'Published' })
+    ).toBe(false)
+    expect(isPublishedPostPage({ type: 'Post', status: 'Published' })).toBe(
+      false
+    )
   })
 
   test('collectOfferRows：page_sort 为空时从 collection_query 兜底取行（新建视图场景）', () => {
@@ -1665,7 +2113,13 @@ describe('themes/freetoken lib/offerBlocks 渠道解析与正文剔除', () => {
     bm.collection_view.v1.value.value.page_sort = []
     bm.collection_query = {
       d4e2: {
-        v1: { collection_group_results: { type: 'results', blockIds: ['row-k', 'row-p'], hasMore: false } }
+        v1: {
+          collection_group_results: {
+            type: 'results',
+            blockIds: ['row-k', 'row-p'],
+            hasMore: false
+          }
+        }
       }
     }
     expect(collectOfferRows(bm).map(r => r.name)).toEqual(['Kiraai', 'Pkay'])
@@ -1673,7 +2127,17 @@ describe('themes/freetoken lib/offerBlocks 渠道解析与正文剔除', () => {
     // 查询对象被包一层 value 时同样可解析
     bm.collection_query = {
       d4e2: {
-        v1: { value: { value: { collection_group_results: { type: 'results', blockIds: ['row-p'], hasMore: false } } } }
+        v1: {
+          value: {
+            value: {
+              collection_group_results: {
+                type: 'results',
+                blockIds: ['row-p'],
+                hasMore: false
+              }
+            }
+          }
+        }
       }
     }
     expect(collectOfferRows(bm).map(r => r.name)).toEqual(['Pkay'])
@@ -1685,19 +2149,41 @@ describe('themes/freetoken lib/offerBlocks 渠道解析与正文剔除', () => {
     // 早先「page_sort 非空就不再读查询结果」导致该行被静默丢弃（平台统计少算）。
     const bm = makeBlockMap()
     bm.block['row-a'] = {
-      value: { value: { id: 'row-a', type: 'page', parent_id: 'd4e2', parent_table: 'collection', properties: { a: [['Apinex']] } } }
+      value: {
+        value: {
+          id: 'row-a',
+          type: 'page',
+          parent_id: 'd4e2',
+          parent_table: 'collection',
+          properties: { a: [['Apinex']] }
+        }
+      }
     }
     bm.collection_view.v1.value.value.page_sort = ['row-k'] // 快照只加载了一行
     bm.collection_query = {
       d4e2: {
-        v1: { collection_group_results: { type: 'results', blockIds: ['row-k', 'row-p', 'row-a'], hasMore: false } }
+        v1: {
+          collection_group_results: {
+            type: 'results',
+            blockIds: ['row-k', 'row-p', 'row-a'],
+            hasMore: false
+          }
+        }
       }
     }
     // 并集：page_sort 的行在前（保住用户视图顺序），查询结果补齐其余行
-    expect(collectOfferRows(bm).map(r => r.name)).toEqual(['Kiraai', 'Pkay', 'Apinex'])
+    expect(collectOfferRows(bm).map(r => r.name)).toEqual([
+      'Kiraai',
+      'Pkay',
+      'Apinex'
+    ])
     // 两个来源有重叠 id 时按 page_sort 顺序优先，且不重复输出
     bm.collection_view.v1.value.value.page_sort = ['row-p', 'row-k']
-    expect(collectOfferRows(bm).map(r => r.name)).toEqual(['Pkay', 'Kiraai', 'Apinex'])
+    expect(collectOfferRows(bm).map(r => r.name)).toEqual([
+      'Pkay',
+      'Kiraai',
+      'Apinex'
+    ])
     // 只保留 page_sort 时的旧行为不变（无可补齐的行）
     bm.collection_query = {}
     expect(collectOfferRows(bm).map(r => r.name)).toEqual(['Pkay', 'Kiraai'])
@@ -1713,7 +2199,9 @@ describe('themes/freetoken lib/offerBlocks 渠道解析与正文剔除', () => {
     expect(bm.block['d002-1']).toBeTruthy()
     expect(bm.block['page-1'].value.value.content).toEqual(['d002-1', 'txt-1'])
     // 无内嵌表时原样返回
-    const plain = { block: { a: { value: { value: { id: 'a', type: 'text' } } } } }
+    const plain = {
+      block: { a: { value: { value: { id: 'a', type: 'text' } } } }
+    }
     expect(stripEmbeddedTables(plain)).toBe(plain)
     expect(stripEmbeddedTables(null)).toBeNull()
   })
@@ -1722,8 +2210,18 @@ describe('themes/freetoken lib/offerBlocks 渠道解析与正文剔除', () => {
     // 该 blockMap 除内嵌表与 page 外无其他块 → 正文无可渲染内容
     const onlyTable = {
       block: {
-        'p1': { value: { value: { id: 'p1', type: 'page', content: ['d002-1'] } } },
-        'd002-1': { value: { value: { id: 'd002-1', type: 'collection_view', collection_id: 'd4e2' } } }
+        p1: {
+          value: { value: { id: 'p1', type: 'page', content: ['d002-1'] } }
+        },
+        'd002-1': {
+          value: {
+            value: {
+              id: 'd002-1',
+              type: 'collection_view',
+              collection_id: 'd4e2'
+            }
+          }
+        }
       }
     }
     expect(hasRenderableBody(onlyTable)).toBe(false)
@@ -1773,7 +2271,17 @@ describe('themes/freetoken 方案A：平台档案 join（平台/模型解耦）'
   })
 
   test('applyPlatformProfiles：行只写平台名时回填平台级字段', () => {
-    const rows = [{ name: 'Kiraai', url: '', desc: '', baseUrl: '', quota: '', guide: '', context: 0 }]
+    const rows = [
+      {
+        name: 'Kiraai',
+        url: '',
+        desc: '',
+        baseUrl: '',
+        quota: '',
+        guide: '',
+        context: 0
+      }
+    ]
     const merged = applyPlatformProfiles(rows, profilesRaw)
     expect(merged).toHaveLength(1)
     expect(merged[0].baseUrl).toBe('https://kiraai.vn/api/v1')
@@ -1808,12 +2316,25 @@ describe('themes/freetoken 方案A：平台档案 join（平台/模型解耦）'
 
   test('applyPlatformProfiles：平台名大小写/空白不敏感；无档案时原样返回', () => {
     const merged = applyPlatformProfiles(
-      [{ name: '  kiraai ', baseUrl: '', url: '', desc: '', quota: '', guide: '', context: 0 }],
+      [
+        {
+          name: '  kiraai ',
+          baseUrl: '',
+          url: '',
+          desc: '',
+          quota: '',
+          guide: '',
+          context: 0
+        }
+      ],
       profilesRaw
     )
     expect(merged[0].baseUrl).toBe('https://kiraai.vn/api/v1')
     // 无档案 → 不崩溃，字段保持原值
-    const plain = applyPlatformProfiles([{ name: 'Unknown', baseUrl: '' }], null)
+    const plain = applyPlatformProfiles(
+      [{ name: 'Unknown', baseUrl: '' }],
+      null
+    )
     expect(plain[0].baseUrl).toBe('')
     expect(applyPlatformProfiles(null, profilesRaw)).toEqual([])
   })
@@ -1821,19 +2342,52 @@ describe('themes/freetoken 方案A：平台档案 join（平台/模型解耦）'
 
 describe('themes/freetoken 免费获取渠道清单（可检索 + 渐进展开）', () => {
   const rows = [
-    { name: 'Kiraai', modelId: 'vendor/kiraai-model:free', url: 'https://kiraai.vn', desc: '很好', context: 128 * 1024, baseUrl: 'https://kiraai.vn/api/v1', guide: '1. 注册\n2. 建 Key', quota: '1.5 亿代币' },
-    { name: 'Pkay', modelId: 'vendor/pkay-model:free', url: 'https://pkay.fun', desc: '很棒', context: 12000, baseUrl: 'https://api.pkay.fun/v1', guide: '看官网', quota: '25 亿令牌' },
-    { name: 'ZeroAI', url: 'https://zero.ai', desc: '一般', context: 0, baseUrl: '', guide: '', quota: '' }
+    {
+      name: 'Kiraai',
+      modelId: 'vendor/kiraai-model:free',
+      url: 'https://kiraai.vn',
+      desc: '很好',
+      context: 128 * 1024,
+      baseUrl: 'https://kiraai.vn/api/v1',
+      guide: '1. 注册\n2. 建 Key',
+      quota: '1.5 亿代币'
+    },
+    {
+      name: 'Pkay',
+      modelId: 'vendor/pkay-model:free',
+      url: 'https://pkay.fun',
+      desc: '很棒',
+      context: 12000,
+      baseUrl: 'https://api.pkay.fun/v1',
+      guide: '看官网',
+      quota: '25 亿令牌'
+    },
+    {
+      name: 'ZeroAI',
+      url: 'https://zero.ai',
+      desc: '一般',
+      context: 0,
+      baseUrl: '',
+      guide: '',
+      quota: ''
+    }
   ]
   const renderOffers = rs =>
     render(
       <LayoutSlug
-        post={{ id: 'd-offers', title: 'Offer Model', href: '/offer-model', ext: {} }}
+        post={{
+          id: 'd-offers',
+          title: 'Offer Model',
+          href: '/offer-model',
+          ext: {}
+        }}
         offerRowsOverride={rs}
       />
     )
   const nameList = () =>
-    screen.queryAllByTestId('ft-offer-card').map(el => el.querySelector('.oname')?.textContent)
+    screen
+      .queryAllByTestId('ft-offer-card')
+      .map(el => el.querySelector('.oname')?.textContent)
 
   test('紧凑清单：一行一家；详情（curl）默认不渲染，点「接入方式」才展开', () => {
     renderOffers(rows)
@@ -1899,9 +2453,13 @@ describe('themes/freetoken 免费获取渠道清单（可检索 + 渐进展开�
   test('搜索过滤 + 排序（上下文最大 / A→Z）', () => {
     renderOffers(rows)
     // 搜索 pkay
-    fireEvent.change(screen.getByLabelText('搜索免费获取渠道'), { target: { value: 'pkay' } })
+    fireEvent.change(screen.getByLabelText('搜索免费获取渠道'), {
+      target: { value: 'pkay' }
+    })
     expect(nameList()).toEqual(['Pkay'])
-    fireEvent.change(screen.getByLabelText('搜索免费获取渠道'), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('搜索免费获取渠道'), {
+      target: { value: '' }
+    })
     // 上下文最大：128K(131072) > 12000 > 0
     fireEvent.click(screen.getByRole('button', { name: '上下文最大' }))
     expect(nameList()).toEqual(['Kiraai', 'Pkay', 'ZeroAI'])
@@ -1919,7 +2477,12 @@ describe('themes/freetoken 免费获取渠道清单（可检索 + 渐进展开�
   test('平台名命中平台档案时跳详情页；未建档保持纯文本（不产生 404 入口）', () => {
     render(
       <LayoutSlug
-        post={{ id: 'd-link', title: 'Link Model', href: '/link-model', ext: {} }}
+        post={{
+          id: 'd-link',
+          title: 'Link Model',
+          href: '/link-model',
+          ext: {}
+        }}
         offerRowsOverride={[
           { name: 'Kiraai', desc: '很好', context: 0, baseUrl: '' },
           { name: '未建档平台', desc: '无档案', context: 0, baseUrl: '' }
@@ -1992,7 +2555,9 @@ describe('themes/freetoken 样式作用域（不污染全局）', () => {
   })
 
   test('回归守卫：排除选择器必须用 :where() 降权（:not 的 id 计数曾压过主题类规则致全站移位）', () => {
-    expect(styleSource).not.toContain('#theme-freetoken *:not(#article-wrapper *)')
+    expect(styleSource).not.toContain(
+      '#theme-freetoken *:not(#article-wrapper *)'
+    )
     expect(styleSource).toContain(':where(*:not(#article-wrapper *)')
     // 任何未包进 :where() 的排除选择器都会重新引入特异性 bug
     const bare =
@@ -2013,7 +2578,9 @@ describe('themes/freetoken 样式作用域（不污染全局）', () => {
     const sources = fs
       .readdirSync(dir)
       .map(file => fs.readFileSync(path.join(dir, file), 'utf8'))
-      .concat([fs.readFileSync(path.join(root, 'themes/freetoken/index.js'), 'utf8')])
+      .concat([
+        fs.readFileSync(path.join(root, 'themes/freetoken/index.js'), 'utf8')
+      ])
       .join('\n')
     expect(sources).not.toMatch(/className={?'[^']*ft-[a-z]/)
     expect(sources).not.toMatch(/className={?"[^"]*ft-[a-z]/)
@@ -2037,7 +2604,9 @@ describe('themes/freetoken 样式作用域（不污染全局）', () => {
     // 又会在页面底部与站点页脚之间夹出一条白块（浏览器实测反馈）。
     // 现在改为渠道列表正下方的 .reportline 普通文字行。
     expect(styleSource).not.toMatch(/#theme-freetoken \.pagefoot/)
-    const matched = styleSource.match(/#theme-freetoken \.reportline \{([\s\S]*?)\}/)
+    const matched = styleSource.match(
+      /#theme-freetoken \.reportline \{([\s\S]*?)\}/
+    )
     expect(matched).toBeTruthy()
     expect(matched[1]).not.toMatch(/background:/)
     // 其它页面（首页 / 关于 / 平台详情）的站点页脚仍保留 110px 间距

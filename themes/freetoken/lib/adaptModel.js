@@ -25,6 +25,11 @@ const VERIFICATION_STATUSES = ['verified', 'pending', 'duplicate']
 const CAPABILITY_KEYS = ['vision', 'tools', 'reasoning']
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const ADAPTED_FLAG = '__ftAdaptedModel'
+const PAID_PRICING_RE = /付费|收费|计费|充值|订阅|购买|按量|按\s*token/i
+const FREE_PRICING_RE = /免费|零成本|0\s*元|[¥￥]\s*0(?:\.0+)?/i
+
+/** 定价缺失/无法判断时的展示文案 */
+export const UNKNOWN_PRICING_LABEL = '未标注'
 
 /** 已适配结果的 WeakMap 记忆化缓存（key = 原始 post 对象） */
 const ADAPTED_CACHE = new WeakMap()
@@ -90,6 +95,29 @@ function toNonEmptyString(v) {
   return typeof v === 'string' ? v.trim() : ''
 }
 
+/** 定价展示值：空值不再默认成“免费” */
+export function normalizePricingLabel(v) {
+  return toNonEmptyString(v) || UNKNOWN_PRICING_LABEL
+}
+
+/**
+ * 定价语义：free / paid / unknown。
+ * 同时含免费与付费说明（如“免费额度用完后按量计费”）时按 paid 处理，
+ * 避免页面继续宣称零成本。
+ */
+export function pricingStatus(v) {
+  const text = normalizePricingLabel(v)
+  if (
+    text === UNKNOWN_PRICING_LABEL ||
+    /未标注|未知|待确认|以渠道为准/.test(text)
+  ) {
+    return 'unknown'
+  }
+  if (PAID_PRICING_RE.test(text)) return 'paid'
+  if (FREE_PRICING_RE.test(text)) return 'free'
+  return 'unknown'
+}
+
 /** 有限正数 → number，其余（0/负数/NaN/Infinity/非数字字符串）→ 0 */
 function toFinitePositiveNumber(v) {
   if (typeof v === 'number') return Number.isFinite(v) && v > 0 ? v : 0
@@ -108,7 +136,9 @@ function toFinitePositiveNumber(v) {
  */
 export function toPropText(v) {
   if (Array.isArray(v)) {
-    const first = v.find(x => typeof x === 'string' && x.trim() && x !== '__NO__')
+    const first = v.find(
+      x => typeof x === 'string' && x.trim() && x !== '__NO__'
+    )
     return first ? first.trim() : ''
   }
   if (typeof v === 'number' && Number.isFinite(v)) return String(v)
@@ -159,7 +189,8 @@ function toPositiveNumberFromProp(v) {
  */
 export function resolveContext(post, ext) {
   const raw =
-    toPositiveNumberFromProp(post['上下文']) || toFinitePositiveNumber(post.context)
+    toPositiveNumberFromProp(post['上下文']) ||
+    toFinitePositiveNumber(post.context)
   if (raw > 0) return raw < 4096 ? raw * 1024 : raw
   return toFinitePositiveNumber(ext.context)
 }
@@ -230,7 +261,7 @@ function emptyModel() {
     reasoning: false,
     inputModality: '文本',
     outputModality: '文本',
-    pricing: '免费',
+    pricing: UNKNOWN_PRICING_LABEL,
     desc: '',
     limitsNote: '',
     verifiedAt: '',
@@ -250,14 +281,17 @@ function emptyModel() {
  * @returns {object} 模型对象（坏值降级，绝不抛异常）
  */
 export function adaptPost(post) {
-  if (!post || typeof post !== 'object' || Array.isArray(post)) return emptyModel()
+  if (!post || typeof post !== 'object' || Array.isArray(post))
+    return emptyModel()
   if (post[ADAPTED_FLAG]) return post
   const cached = ADAPTED_CACHE.get(post)
   if (cached) return cached
 
   const ext = parseExt(post.ext)
   const capsRaw =
-    ext.capabilities && typeof ext.capabilities === 'object' && !Array.isArray(ext.capabilities)
+    ext.capabilities &&
+    typeof ext.capabilities === 'object' &&
+    !Array.isArray(ext.capabilities)
       ? ext.capabilities
       : {}
 
@@ -281,7 +315,10 @@ export function adaptPost(post) {
 
   const model = {
     // id 是站内路由标识；modelId 才是供应商 API 实际接受的模型名。
-    id: toNonEmptyString(post.slug) || toNonEmptyString(post.short_id) || toNonEmptyString(post.id),
+    id:
+      toNonEmptyString(post.slug) ||
+      toNonEmptyString(post.short_id) ||
+      toNonEmptyString(post.id),
     modelId: toNonEmptyString(ext.modelId),
     name: toNonEmptyString(post.title) || toNonEmptyString(post.name),
     provider: toNonEmptyString(ext.provider),
@@ -293,10 +330,10 @@ export function adaptPost(post) {
     vision: capabilities.vision,
     tools: capabilities.tools,
     reasoning: capabilities.reasoning,
-    // 模态与定价：Notion 直属属性优先，缺失时按能力推导兜底
+    // 模态与定价：Notion 直属属性优先；定价缺失时保留“未标注”，不推断为免费
     inputModality: inputModality || '文本',
     outputModality: outputModality || '文本',
-    pricing: pricing || '免费',
+    pricing: normalizePricingLabel(pricing),
     desc: toNonEmptyString(post.summary),
     limitsNote: toNonEmptyString(ext.limitsNote),
     verifiedAt: isValidDateStr(ext.verifiedAt) ? ext.verifiedAt : '',

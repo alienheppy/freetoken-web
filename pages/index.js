@@ -14,6 +14,7 @@ import { generateRedirectJson } from '@/lib/utils/redirect'
 import { checkDataFromAlgolia } from '@/lib/plugins/algolia'
 import pLimit from 'p-limit'
 import { adapterNotionBlockMap } from '@/lib/utils/notion.util'
+import { bootstrapNotionRuntimeRefresh } from '@/lib/cache/notion-runtime-refresh-bootstrap'
 
 /**
  * 首页布局
@@ -33,6 +34,9 @@ export async function getStaticProps(req) {
   const { locale } = req
   const from = 'index'
   const props = await fetchGlobalAllData({ from, locale })
+  // 首页数据已从缓存读出后再启动后台刷新。放到下一个事件循环，确保页面
+  // props 先完成返回，不受刷新任务影响。
+  setTimeout(() => bootstrapNotionRuntimeRefresh(), 0)
   if (process.env.NODE_ENV === 'development') {
     const configTheme = BLOG.THEME
     const notionTheme = props?.NOTION_CONFIG?.THEME || null

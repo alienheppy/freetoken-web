@@ -1,14 +1,18 @@
 import { markContributionCacheDirty } from '@/lib/server/claude/contributionStore'
 
-const getTokenFromRequest = req => {
-  const queryToken = Array.isArray(req.query?.token)
-    ? req.query.token[0]
-    : req.query?.token
+const getRequestTokens = req => {
+  const authorization = req.headers?.authorization
+  const bearerToken =
+    typeof authorization === 'string'
+      ? authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim()
+      : ''
   const headerToken =
     req.headers['x-contribution-trigger-token'] ||
     req.headers['x-contrib-trigger-token'] ||
     ''
-  return String(queryToken || headerToken || '')
+  return [bearerToken, headerToken]
+    .map(token => String(token || ''))
+    .filter(Boolean)
 }
 
 const ALLOWED_REVALIDATE_PATHS = ['/', '/archive', '/category', '/tag']
@@ -28,17 +32,20 @@ export default async function handler(req, res) {
   if (!expectedToken) {
     return res.status(503).json({
       ok: false,
-      message: 'Contribution refresh is disabled: missing CLAUDE_CONTRIBUTION_TRIGGER_TOKEN'
+      message:
+        'Contribution refresh is disabled: missing CLAUDE_CONTRIBUTION_TRIGGER_TOKEN'
     })
   }
 
-  const receivedToken = getTokenFromRequest(req)
-  if (!receivedToken || receivedToken !== expectedToken) {
+  const receivedTokens = getRequestTokens(req)
+  if (!receivedTokens.includes(expectedToken)) {
     return res.status(401).json({ ok: false, message: 'Unauthorized' })
   }
 
   const shouldRevalidate = String(req.query?.revalidate || '1') !== '0'
-  const requestedPath = (Array.isArray(req.query?.path) ? req.query.path[0] : req.query?.path) || '/'
+  const requestedPath =
+    (Array.isArray(req.query?.path) ? req.query.path[0] : req.query?.path) ||
+    '/'
   const path = normalizeRevalidatePath(requestedPath)
   if (!path) {
     return res.status(400).json({

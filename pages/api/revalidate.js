@@ -1,5 +1,5 @@
 import BLOG from '@/blog.config'
-import { cleanCache } from '@/lib/cache/local_file_cache'
+import { refreshNotionSiteDataInBackground } from '@/lib/cache/notion-runtime-refresh'
 
 /**
  * On-Demand Revalidation API
@@ -45,20 +45,14 @@ export default async function handler(req, res) {
   const { path, paths, all } = req.body || {}
 
   try {
-    // 全站刷新：清除本地缓存 + revalidate 首页
+    // 全站刷新：后台重建 Notion 数据，完成后原子覆盖缓存；旧数据在期间保持可用。
     if (all) {
-      cleanCache()
-      const results = []
-      try {
-        await res.revalidate('/')
-        results.push({ path: '/', revalidated: true })
-      } catch (e) {
-        results.push({ path: '/', revalidated: false, error: e.message })
-      }
+      const { started } = refreshNotionSiteDataInBackground('api-revalidate')
       return res.status(200).json({
         ok: true,
-        message: 'Full site cache cleared. Homepage revalidated. Other pages will refresh on next visit.',
-        results
+        message: started
+          ? 'Full-site Notion refresh started in background. Old cache remains available.'
+          : 'A full-site Notion refresh is already running.'
       })
     }
 

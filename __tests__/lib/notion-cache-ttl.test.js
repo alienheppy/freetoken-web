@@ -62,6 +62,7 @@ describe('Notion 派生缓存有效期', () => {
   beforeEach(() => {
     savedEnv = snapshotEnv()
     roots = []
+    delete globalThis[Symbol.for('freetoken.cache.refreshFlights')]
   })
 
   afterEach(() => {
@@ -88,7 +89,7 @@ describe('Notion 派生缓存有效期', () => {
     expect(normalizeNotionCacheTtl('abc')).toBeNull()
   })
 
-  it('默认写入 300 秒有效期，命中缓存不重拉，过期后自动重拉', async () => {
+  it('默认写入 3600 秒有效期，命中缓存不重拉，过期后自动重拉', async () => {
     const { root, dataDir, mod } = loadCacheManager()
     roots.push(root)
     const { getOrSetDataWithCache } = mod
@@ -107,7 +108,7 @@ describe('Notion 派生缓存有效期', () => {
     const { file, entry } = readSingleEntry(dataDir)
     expect(entry.key).toBe(key)
     expect(entry.expireTime).toBeGreaterThan(before)
-    expect(entry.expireTime).toBeLessThanOrEqual(before + 300 * 1000 + 1000)
+    expect(entry.expireTime).toBeLessThanOrEqual(before + 3600 * 1000 + 1000)
 
     // 未过期：直接命中缓存
     expect(await getOrSetDataWithCache(key, fetcher)).toEqual({ n: 1 })
@@ -134,6 +135,63 @@ describe('Notion 派生缓存有效期', () => {
 
     const { entry } = readSingleEntry(dataDir)
     expect(entry.expireTime).toBeNull()
+  })
+
+  it('refreshDataWithCache 跳过旧值并原子覆盖，失败时保留旧值', async () => {
+    const { root, dataDir, mod } = loadCacheManager({ ttl: 3600 })
+    roots.push(root)
+    const { getOrSetDataWithCache, refreshDataWithCache } = mod
+    const key = 'global_data_default_refresh-test'
+
+    expect(
+      await getOrSetDataWithCache(key, async () => ({ version: 1 }))
+    ).toEqual({ version: 1 })
+
+    let releaseRefresh
+    const refreshGate = new Promise(resolve => {
+      releaseRefresh = resolve
+    })
+    const refreshPromise = refreshDataWithCache(
+      key,
+      () =>
+        refreshGate.then(() => {
+          return { version: 2 }
+        }),
+      3600
+    )
+
+    // 刷新进行中，普通读取仍拿到旧值；同 key 再次刷新复用同一个 in-flight。
+    expect(await getOrSetDataWithCache(key, async () => ({ version: 99 }))).toEqual(
+      { version: 1 }
+    )
+    const joinedPromise = refreshDataWithCache(
+      key,
+      async () => ({ version: 3 }),
+      3600
+    )
+
+    releaseRefresh()
+    expect(await refreshPromise).toEqual({ version: 2 })
+    expect(await joinedPromise).toEqual({ version: 2 })
+    expect(await getOrSetDataWithCache(key, async () => ({ version: 99 }))).toEqual(
+      { version: 2 }
+    )
+
+    const entry = readSingleEntry(dataDir).entry
+    expect(entry.value).toEqual({ version: 2 })
+
+    await expect(
+      refreshDataWithCache(
+        key,
+        async () => {
+          throw new Error('Notion unavailable')
+        },
+        3600
+      )
+    ).rejects.toThrow('Notion unavailable')
+    expect(await getOrSetDataWithCache(key, async () => ({ version: 99 }))).toEqual(
+      { version: 2 }
+    )
   })
 
   it('resolveNotionCacheTtl：非构建期原样返回配置值', () => {

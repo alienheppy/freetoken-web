@@ -1,1 +1,32 @@
+# Local secrets and configuration
+.env*
+!.env.example
+
+# Repository and dependency metadata
+.git
+node_modules
+.pnp
+.pnp.js
+
+# Build and framework caches
 .next*
+.swc
+.turbo
+.vercel
+.cache
+.npm
+.yarn/cache
+.pnpm-store
+
+# Test and coverage artifacts
+coverage
+test-results
+.nyc_output
+playwright-report
+*.tsbuildinfo
+
+# Logs and temporary files
+*.log
+logs
+*.pid
+*.tmp

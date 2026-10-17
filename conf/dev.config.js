@@ -28,13 +28,13 @@ module.exports = {
   // 数据最多滞后这么久就会自动重新拉取。
   //
   // 注意：整站冷重建要逐个拉取约 94 个模型页，实测 85~160 秒（个别请求会被
-  // Notion 拖到 70 秒以上），所以不建议调到 60 秒级。改完 Notion 想立刻生效，
-  // 用 POST /api/cache 清缓存即可。
+  // Notion 拖到 70 秒以上），所以不建议调到 60 秒级。运行时会每 30 分钟
+  // 后台刷新并原子覆盖缓存；POST /api/cache 也会立即返回并在后台刷新。
   NOTION_DATA_CACHE_TTL_SECOND: (() => {
     const raw = process.env.NOTION_DATA_CACHE_TTL_SECOND
-    if (raw === undefined || raw === null || String(raw).trim() === '') return 300
+    if (raw === undefined || raw === null || String(raw).trim() === '') return 3600
     const n = Number(raw)
-    return Number.isFinite(n) && n >= 0 ? n : 300
+    return Number.isFinite(n) && n >= 0 ? n : 3600
   })(),
   isProd: process.env.VERCEL_ENV === 'production' || process.env.EXPORT, // distinguish between development and production environment (ref: https://vercel.com/docs/environment-variables#system-environment-variables)
   BUNDLE_ANALYZER: process.env.ANALYZE === 'true' || false, // 是否展示编译依赖内容与大小

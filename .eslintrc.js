@@ -40,7 +40,8 @@ module.exports = {
     'space-before-function-paren': 0,
     'react-hooks/rules-of-hooks': 'error', // Checks rules of Hooks
     '@typescript-eslint/no-unused-vars': 'off', // 关闭未使用的变量报错
-    '@typescript-eslint/explicit-function-return-type': 'off' // 关闭强制函数返回类型声明
+    '@typescript-eslint/explicit-function-return-type': 'off', // 关闭强制函数返回类型声明
+    '@typescript-eslint/no-explicit-any': 'warn'
   },
   overrides: [
     {
@@ -48,18 +49,22 @@ module.exports = {
       parser: null // 避免对 `.eslintrc.js` 文件使用 TypeScript 解析器
     },
     {
-      files: ['**/*.js'], // Match all .js files 对js的代码规范检查不那么严格
+      files: ['**/*.js', '**/*.jsx'], // JS 文件不启用 TS 的严格类型规则
       rules: {
         '@typescript-eslint/no-unsafe-assignment': 'off',
         '@typescript-eslint/no-unsafe-argument': 'off',
         '@typescript-eslint/no-unsafe-member-access': 'off',
         '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-return': 'off',
         '@typescript-eslint/no-var-requires': 'off',
         '@typescript-eslint/explicit-module-boundary-types': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/ban-ts-comment': 'off',
         '@typescript-eslint/no-floating-promises': 'off',
-        '@typescript-eslint/no-unsafe-return': 'off'
+        '@typescript-eslint/no-misused-promises': 'off',
+        '@typescript-eslint/require-await': 'off',
+        '@typescript-eslint/restrict-template-expressions': 'off',
+        '@typescript-eslint/unbound-method': 'off'
       }
     }
   ],

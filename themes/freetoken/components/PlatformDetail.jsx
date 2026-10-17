@@ -7,7 +7,11 @@ import { siteConfig } from '@/lib/config'
 
 import CONFIG from '../config'
 import { adaptPosts, fmtCtx } from '../lib/adaptModel'
-import { PLATFORM_SORTS, sortModelsBy, togglePlatformSort } from '../lib/modelView'
+import {
+  PLATFORM_SORTS,
+  sortModelsBy,
+  togglePlatformSort
+} from '../lib/modelView'
 
 /**
  * 「免费模型」表格首屏展示的行数：超出的部分在本区域内滚动。
@@ -34,7 +38,8 @@ export default function PlatformDetail({ platform, posts }) {
     () => (sort ? sortModelsBy(adapted, sort.key, sort.dir) : adapted),
     [adapted, sort]
   )
-  const [copied, setCopied] = useState(false)
+  const [copyStatus, setCopyStatus] = useState('idle')
+  const copyTimerRef = useRef(null)
 
   // 表格限高：量出第 VISIBLE_ROWS 行的实测底部位置写进 CSS 变量，
   // 而不是写死像素 —— 行高会随模型名换行、有无简介而变。
@@ -63,21 +68,35 @@ export default function PlatformDetail({ platform, posts }) {
     return () => window.removeEventListener('resize', measure)
   }, [models])
 
+  useEffect(
+    () => () => {
+      clearTimeout(copyTimerRef.current)
+    },
+    []
+  )
+
   if (!platform) return null
 
   const certified =
     Array.isArray(platform.certifications) && platform.certifications.length > 0
 
-  // Base URL 一键复制：省去用户手动划选。剪贴板不可用时静默降级，不阻塞交互。
-  const copyBaseUrl = () => {
+  const showCopyStatus = next => {
+    clearTimeout(copyTimerRef.current)
+    setCopyStatus(next)
+    copyTimerRef.current = setTimeout(() => setCopyStatus('idle'), 1500)
+  }
+
+  // Base URL 一键复制：写入成功才提示“已复制”，失败或剪贴板不可用时显示失败态。
+  const copyBaseUrl = async () => {
     if (!platform.baseUrl) return
     try {
-      navigator?.clipboard?.writeText(platform.baseUrl)
+      if (!navigator?.clipboard?.writeText)
+        throw new Error('Clipboard unavailable')
+      await navigator.clipboard.writeText(platform.baseUrl)
+      showCopyStatus('copied')
     } catch (e) {
-      /* 剪贴板不可用：静默降级 */
+      showCopyStatus('failed')
     }
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
   }
 
   return (
@@ -95,7 +114,9 @@ export default function PlatformDetail({ platform, posts }) {
         </h1>
         {platform.desc && <div className='herosub'>{platform.desc}</div>}
         <div className='heropills'>
-          {platform.quota && <span className='hpill dark'>{platform.quota}</span>}
+          {platform.quota && (
+            <span className='hpill dark'>{platform.quota}</span>
+          )}
           {platform.context > 0 && (
             <span className='hpill'>上下文 {fmtCtx(platform.context)}</span>
           )}
@@ -108,7 +129,8 @@ export default function PlatformDetail({ platform, posts }) {
                 href={platform.url}
                 className='pmetabtn'
                 target='_blank'
-                rel='noopener noreferrer'>
+                rel='noopener noreferrer'
+              >
                 前往官网
               </SmartLink>
             )}
@@ -118,9 +140,16 @@ export default function PlatformDetail({ platform, posts }) {
                 className='pmetaurl'
                 title='点击复制 Base URL'
                 aria-label={`复制 Base URL：${platform.baseUrl}`}
-                onClick={copyBaseUrl}>
+                onClick={copyBaseUrl}
+              >
                 <span className='pmetaurl-text'>{platform.baseUrl}</span>
-                <span className='pmetaurl-copy'>{copied ? '已复制' : '复制'}</span>
+                <span className='pmetaurl-copy'>
+                  {copyStatus === 'copied'
+                    ? '已复制'
+                    : copyStatus === 'failed'
+                      ? '复制失败'
+                      : '复制'}
+                </span>
               </button>
             )}
           </div>
@@ -153,10 +182,17 @@ export default function PlatformDetail({ platform, posts }) {
                       : `${column.label}，点击排序`
                   }
                   title='点击切换排序'
-                  onClick={() => setSort(current => togglePlatformSort(current, column.key))}>
+                  onClick={() =>
+                    setSort(current => togglePlatformSort(current, column.key))
+                  }
+                >
                   <span>{column.label}</span>
                   <span className='psort-arrow' aria-hidden='true'>
-                    {sort?.key === column.key ? (sort.dir === 'asc' ? '▲' : '▼') : '↕'}
+                    {sort?.key === column.key
+                      ? sort.dir === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
                   </span>
                 </button>
               ))}
@@ -164,13 +200,18 @@ export default function PlatformDetail({ platform, posts }) {
           )}
           {models.length > 0 && (
             // 限高滚动区：表头留在外面常驻可见，只有行列表滚动。
-            <div className='pbody' ref={bodyRef} data-testid='ft-platform-models-body'>
+            <div
+              className='pbody'
+              ref={bodyRef}
+              data-testid='ft-platform-models-body'
+            >
               {models.map(model => (
                 <SmartLink
                   key={model.id || model.href}
                   href={model.href || '/'}
                   data-testid='ft-platform-model'
-                  className='prow'>
+                  className='prow'
+                >
                   <div className='pmain'>
                     <div className='pmname'>{model.name}</div>
                     {model.desc && <div className='pmdesc'>{model.desc}</div>}

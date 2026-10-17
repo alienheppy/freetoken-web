@@ -14,7 +14,9 @@ RUN yarn install --frozen-lockfile --network-timeout 600000
 # 2. Rebuild the source code only when needed
 FROM base AS builder
 ARG NOTION_PAGE_ID
+ARG NEXT_PUBLIC_THEME
 ENV NEXT_BUILD_STANDALONE=true
+ENV NEXT_PUBLIC_THEME=${NEXT_PUBLIC_THEME}
 
 WORKDIR /app
 

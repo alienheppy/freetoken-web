@@ -32,7 +32,8 @@ const SearchInput = ({ currentTag, keyword, cRef }) => {
   const handleSearch = () => {
     const key = (searchInputRef.current?.value || '').trim()
     if (key) {
-      router.push({ pathname: '/search/' + key })
+      // 动态路由参数由 Next Router 负责 URL 编码，避免 /、?、# 等字符污染路径。
+      router.push({ pathname: '/search/[keyword]', query: { keyword: key } })
     } else {
       router.push({ pathname: '/' })
     }
@@ -45,8 +46,9 @@ const SearchInput = ({ currentTag, keyword, cRef }) => {
     setShowClean(false)
   }
 
-  const handleKeyUp = e => {
+  const handleKeyDown = e => {
     if (e.key === 'Enter') {
+      if (composingRef.current || e.nativeEvent?.isComposing) return
       handleSearch()
     } else if (e.key === 'Escape') {
       cleanSearch()
@@ -67,7 +69,7 @@ const SearchInput = ({ currentTag, keyword, cRef }) => {
         aria-label='站内搜索'
         placeholder={placeholder}
         defaultValue={keyword || ''}
-        onKeyUp={handleKeyUp}
+        onKeyDown={handleKeyDown}
         onChange={handleChange}
         onCompositionStart={() => {
           composingRef.current = true
@@ -80,7 +82,12 @@ const SearchInput = ({ currentTag, keyword, cRef }) => {
           handleChange(e)
         }}
       />
-      <button type='button' className='chip' aria-label='搜索' onClick={handleSearch}>
+      <button
+        type='button'
+        className='chip'
+        aria-label='搜索'
+        onClick={handleSearch}
+      >
         搜索
       </button>
       {showClean && (
@@ -88,7 +95,8 @@ const SearchInput = ({ currentTag, keyword, cRef }) => {
           type='button'
           className='chip'
           aria-label='清空搜索'
-          onClick={cleanSearch}>
+          onClick={cleanSearch}
+        >
           清空
         </button>
       )}

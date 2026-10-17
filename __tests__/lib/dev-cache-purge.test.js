@@ -97,7 +97,7 @@ describe('next.config dev 会话缓存清理', () => {
     expect(listFiles(dataDir)).toEqual(['good.json'])
   })
 
-  it('NOTION_DEV_KEEP_CACHE=true 时保留全部缓存（复用上次会话，起服务更快）', () => {
+  it('NOTION_DEV_KEEP_CACHE=true 时保留全部缓存，交给后台刷新覆盖', () => {
     const { root, dataDir } = makeCacheRoot()
     roots.push(root)
 

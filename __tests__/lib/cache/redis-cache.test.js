@@ -79,9 +79,9 @@ describe('Redis 缓存层', () => {
       expect(resolveDefaultCacheTime()).toBe(3600)
     })
 
-    it('未显式配置时取 conf 默认值（300 秒），而非 NEXT_REVALIDATE_SECOND * 1.5 = 90 秒', () => {
+    it('未显式配置时取 conf 默认值（3600 秒），而非 NEXT_REVALIDATE_SECOND * 1.5 = 90 秒', () => {
       const { resolveDefaultCacheTime } = loadRedisCache({})
-      expect(resolveDefaultCacheTime()).toBe(300)
+      expect(resolveDefaultCacheTime()).toBe(3600)
     })
 
     it('显式配成过小值时尊重配置，但输出告警（避免再踩 90 秒）', () => {

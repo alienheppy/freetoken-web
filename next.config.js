@@ -56,7 +56,10 @@ function purgeDerivedNotionCache(dataDir) {
     const file = path.join(dataDir, name)
     try {
       const entry = JSON.parse(fs.readFileSync(file, 'utf8'))
-      if (isVersionedPageBlockCacheKey(entry?.key) && hasExplicitExpiry(entry)) {
+      if (
+        isVersionedPageBlockCacheKey(entry?.key) &&
+        hasExplicitExpiry(entry)
+      ) {
         kept++
         continue
       }
@@ -134,12 +137,14 @@ function claimDevCacheSession(lockFile) {
 
   if (process.env.NOTION_DEV_KEEP_CACHE === 'true') {
     console.log(
-      '[NotionNext] Dev cache reused (NOTION_DEV_KEEP_CACHE=true)；Notion 的改动不会生效，需要最新数据请去掉该变量后重启'
+      '[NotionNext] Dev cache reused (NOTION_DEV_KEEP_CACHE=true)；服务启动后会在后台刷新 Notion，期间继续使用旧缓存'
     )
     return
   }
 
-  const { removed, kept } = purgeDerivedNotionCache(path.join(cacheRoot, 'data'))
+  const { removed, kept } = purgeDerivedNotionCache(
+    path.join(cacheRoot, 'data')
+  )
   console.log(
     `[NotionNext] Dev session cache reset: purged ${removed} derived entries, kept ${kept} versioned page blocks → 本次启动会重新拉取 Notion 最新数据`
   )
@@ -239,7 +244,10 @@ function pruneTransientNotionDataCache(dataDir) {
     const file = path.join(dataDir, name)
     try {
       const entry = JSON.parse(fs.readFileSync(file, 'utf8'))
-      if (isVersionedPageBlockCacheKey(entry?.key) && hasExplicitExpiry(entry)) {
+      if (
+        isVersionedPageBlockCacheKey(entry?.key) &&
+        hasExplicitExpiry(entry)
+      ) {
         kept++
         continue
       }
@@ -286,9 +294,6 @@ function getOutput() {
 }
 
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true
-  },
   output: getOutput(),
   staticPageGenerationTimeout: getStaticPageGenerationTimeoutSec(),
 
@@ -298,7 +303,6 @@ const nextConfig = {
   generateEtags: true,
 
   // 构建优化
-  swcMinify: true,
   modularizeImports: {
     '@heroicons/react/24/outline': {
       transform: '@heroicons/react/24/outline/{{member}}'
@@ -311,10 +315,10 @@ const nextConfig = {
   i18n: process.env.EXPORT
     ? undefined
     : {
-      defaultLocale: BLOG.LANG,
-      // 支持的所有多语言,按需填写即可
-      locales: locales
-    },
+        defaultLocale: BLOG.LANG,
+        // 支持的所有多语言,按需填写即可
+        locales: locales
+      },
   images: {
     // 图片压缩和格式优化
     formats: ['image/avif', 'image/webp'],
@@ -346,159 +350,132 @@ const nextConfig = {
   redirects: process.env.EXPORT
     ? undefined
     : () => {
-      return [
-        {
-          source: '/feed',
-          destination: '/rss/feed.xml',
-          permanent: true
-        }
-      ]
-    },
+        return [
+          {
+            source: '/feed',
+            destination: '/rss/feed.xml',
+            permanent: true
+          }
+        ]
+      },
   // 重写url
   rewrites: process.env.EXPORT
     ? undefined
     : () => {
-      // 处理多语言重定向
-      const langsRewrites = []
-      if (BLOG.NOTION_PAGE_ID.indexOf(',') > 0) {
-        const siteIds = BLOG.NOTION_PAGE_ID.split(',')
-        const langs = []
-        for (const siteId of siteIds) {
-          const prefix = extractLangPrefix(siteId)
-          // 如果包含前缀 例如 zh , en 等
-          if (prefix) {
-            langs.push(prefix)
+        // 处理多语言重定向
+        const langsRewrites = []
+        if (BLOG.NOTION_PAGE_ID.indexOf(',') > 0) {
+          const siteIds = BLOG.NOTION_PAGE_ID.split(',')
+          const langs = []
+          for (const siteId of siteIds) {
+            const prefix = extractLangPrefix(siteId)
+            // 如果包含前缀 例如 zh , en 等
+            if (prefix) {
+              langs.push(prefix)
+            }
+            console.log('[Locales]', siteId)
           }
-          console.log('[Locales]', siteId)
+
+          // 映射多语言
+          // 示例： source: '/:locale(zh|en)/:path*' ; :locale() 会将语言放入重写后的 `?locale=` 中。
+          langsRewrites.push(
+            {
+              source: `/:locale(${langs.join('|')})/:path*`,
+              destination: '/:path*'
+            },
+            // 匹配没有路径的情况，例如 [domain]/zh 或 [domain]/en
+            {
+              source: `/:locale(${langs.join('|')})`,
+              destination: '/'
+            },
+            // 匹配没有路径的情况，例如 [domain]/zh/ 或 [domain]/en/
+            {
+              source: `/:locale(${langs.join('|')})/`,
+              destination: '/'
+            }
+          )
         }
 
-        // 映射多语言
-        // 示例： source: '/:locale(zh|en)/:path*' ; :locale() 会将语言放入重写后的 `?locale=` 中。
-        langsRewrites.push(
+        return [
+          ...langsRewrites,
+          // RSS fallback: when static file doesn't exist, route to API
           {
-            source: `/:locale(${langs.join('|')})/:path*`,
+            source: '/rss/feed.xml',
+            destination: '/api/rss'
+          },
+          {
+            source: '/rss/atom.xml',
+            destination: '/api/rss?format=atom'
+          },
+          {
+            source: '/rss/feed.json',
+            destination: '/api/rss?format=json'
+          },
+          // 伪静态重写
+          {
+            source: '/:path*.html',
             destination: '/:path*'
-          },
-          // 匹配没有路径的情况，例如 [domain]/zh 或 [domain]/en
-          {
-            source: `/:locale(${langs.join('|')})`,
-            destination: '/'
-          },
-          // 匹配没有路径的情况，例如 [domain]/zh/ 或 [domain]/en/
-          {
-            source: `/:locale(${langs.join('|')})/`,
-            destination: '/'
           }
-        )
-      }
-
-      return [
-        ...langsRewrites,
-        // RSS fallback: when static file doesn't exist, route to API
-        {
-          source: '/rss/feed.xml',
-          destination: '/api/rss'
-        },
-        {
-          source: '/rss/atom.xml',
-          destination: '/api/rss?format=atom'
-        },
-        {
-          source: '/rss/feed.json',
-          destination: '/api/rss?format=json'
-        },
-        // 伪静态重写
-        {
-          source: '/:path*.html',
-          destination: '/:path*'
-        }
-      ]
-    },
+        ]
+      },
   headers: process.env.EXPORT
     ? undefined
     : () => {
-      return [
-        {
-          source: '/vendor/fontawesome/:path*',
-          headers: [
-            {
-              key: 'Cache-Control',
-              value: 'public, max-age=31536000, immutable'
-            }
-          ]
-        },
-        {
-          source: '/:path*{/}?',
-          headers: [
-            // 为了博客兼容性，不做过多安全限制
-            { key: 'Access-Control-Allow-Credentials', value: 'true' },
-            { key: 'Access-Control-Allow-Origin', value: '*' },
-            {
-              key: 'Access-Control-Allow-Methods',
-              value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT'
-            },
-            {
-              key: 'Access-Control-Allow-Headers',
-              value:
-                'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-            }
-            // 安全头部 相关配置，谨慎开启
-            //   { key: 'X-Frame-Options', value: 'DENY' },
-            //   { key: 'X-Content-Type-Options', value: 'nosniff' },
-            //   { key: 'X-XSS-Protection', value: '1; mode=block' },
-            //   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-            //   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-            //   {
-            //     key: 'Strict-Transport-Security',
-            //     value: 'max-age=31536000; includeSubDomains; preload'
-            //   },
-            //   {
-            //     key: 'Content-Security-Policy',
-            //     value: [
-            //       "default-src 'self'",
-            //       "script-src 'self' 'unsafe-inline' 'unsafe-eval' *.googleapis.com *.gstatic.com *.google-analytics.com *.googletagmanager.com",
-            //       "style-src 'self' 'unsafe-inline' *.googleapis.com *.gstatic.com",
-            //       "img-src 'self' data: blob: *.notion.so *.unsplash.com *.githubusercontent.com *.gravatar.com",
-            //       "font-src 'self' *.googleapis.com *.gstatic.com",
-            //       "connect-src 'self' *.google-analytics.com *.googletagmanager.com",
-            //       "frame-src 'self' *.youtube.com *.vimeo.com",
-            //       "object-src 'none'",
-            //       "base-uri 'self'",
-            //       "form-action 'self'"
-            //     ].join('; ')
-            //   },
-
-            //   // CORS 配置（更严格）
-            //   { key: 'Access-Control-Allow-Credentials', value: 'false' },
-            //   {
-            //     key: 'Access-Control-Allow-Origin',
-            //     value: process.env.NODE_ENV === 'production'
-            //       ? siteConfig('LINK') || 'https://yourdomain.com'
-            //       : '*'
-            //   },
-            //   { key: 'Access-Control-Max-Age', value: '86400' }
-          ]
-        },
-        //   {
-        //     source: '/api/:path*',
-        //     headers: [
-        //       // API 特定的安全头部
-        //       { key: 'X-Frame-Options', value: 'DENY' },
-        //       { key: 'X-Content-Type-Options', value: 'nosniff' },
-        //       { key: 'Cache-Control', value: 'no-store, max-age=0' },
-        //       {
-        //         key: 'Access-Control-Allow-Methods',
-        //         value: 'GET,POST,PUT,DELETE,OPTIONS'
-        //       }
-        //     ]
-        //   }
-      ]
-    },
+        return [
+          {
+            source: '/vendor/fontawesome/:path*',
+            headers: [
+              {
+                key: 'Cache-Control',
+                value: 'public, max-age=31536000, immutable'
+              }
+            ]
+          },
+          {
+            source: '/:path*{/}?',
+            headers: [
+              // 基础安全响应头；CSP 只限制高危能力，不阻断 Notion 图片与嵌入。
+              { key: 'X-Content-Type-Options', value: 'nosniff' },
+              { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+              {
+                key: 'Referrer-Policy',
+                value: 'strict-origin-when-cross-origin'
+              },
+              {
+                key: 'Permissions-Policy',
+                value: 'camera=(), microphone=(), geolocation=()'
+              },
+              {
+                key: 'Content-Security-Policy',
+                value:
+                  "base-uri 'self'; object-src 'none'; frame-ancestors 'self'"
+              }
+            ]
+          },
+          {
+            // CORS 只开放给 API；不使用 credentials，避免与通配 Origin 冲突。
+            source: '/api/:path*',
+            headers: [
+              { key: 'Access-Control-Allow-Origin', value: '*' },
+              {
+                key: 'Access-Control-Allow-Methods',
+                value: 'GET,HEAD,POST,OPTIONS'
+              },
+              {
+                key: 'Access-Control-Allow-Headers',
+                value:
+                  'Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+              }
+            ]
+          }
+        ]
+      },
   webpack: (config, { dev, isServer }) => {
     config.ignoreWarnings = [
       ...(config.ignoreWarnings || []),
       {
-        module: /[\\/]next[\\/]dist[\\/]esm[\\/]client[\\/]components[\\/]navigation\.js$/,
+        module:
+          /[\\/]next[\\/]dist[\\/]esm[\\/]client[\\/]components[\\/]navigation\.js$/,
         message: /useContext.*not exported from ['"]react['"]/i
       }
     ]
@@ -514,8 +491,7 @@ const nextConfig = {
       console.log(
         '[ThemeResolver][webpack]',
         JSON.stringify({
-          note:
-            'Layouts load via dynamic import(@/themes/<name>). Theme folder follows runtime NEXT_PUBLIC_THEME / Notion; no compile-time @theme-components alias.',
+          note: 'Layouts load via dynamic import(@/themes/<name>). Theme folder follows runtime NEXT_PUBLIC_THEME / Notion; no compile-time @theme-components alias.',
           envTheme: process.env.NEXT_PUBLIC_THEME || null,
           configTheme: BLOG.THEME,
           themeFolderPath: path.resolve(__dirname, 'themes', BLOG.THEME)
@@ -531,8 +507,7 @@ const nextConfig = {
       }
     }
     return config
-  }
-  ,
+  },
   experimental: {
     // cpus: 1,
     scrollRestoration: true,
