@@ -187,6 +187,23 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(screen.queryByTestId('ft-side-menu')).toBeNull()
   })
 
+  test('页脚「Notion Next」为官方仓库链接，并在新窗口打开', () => {
+    const { container } = render(
+      <LayoutBase siteInfo={{ title: 'Hub' }}>
+        <div />
+      </LayoutBase>
+    )
+    const link = within(container.querySelector('footer')).getByRole('link', {
+      name: 'Notion Next'
+    })
+    expect(link).toHaveAttribute(
+      'href',
+      'https://github.com/notionnext-org/NotionNext'
+    )
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
   test('顶部导航为原设计结构：nav > .navin > logo + .navlinks 三链接', () => {
     const { container } = render(
       <LayoutBase siteInfo={{ title: 'Hub' }}>
