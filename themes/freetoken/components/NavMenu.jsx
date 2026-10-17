@@ -21,13 +21,19 @@ const subItems = link =>
     sub => sub && sub.show !== false && (sub.href || linkLabel(sub))
   )
 
-export default function NavMenu({ logoText, siteInfo, menu }) {
+export default function NavMenu({ logoText, siteInfo, menu, linkHref }) {
   const items = visibleItems(menu)
+  const resolveHref = href => {
+    if (!linkHref) return href || '/'
+    if (typeof href === 'string' && href === '#') return linkHref
+    if (typeof href === 'string' && href.startsWith('#')) return href
+    return linkHref
+  }
 
   return (
     <nav>
       <div className='navin'>
-        <SmartLink href='/' className='logo'>
+        <SmartLink href={resolveHref('/')} className='logo'>
           {logoText || siteInfo?.title || 'FreeTokenHub'}
         </SmartLink>
 
@@ -36,20 +42,26 @@ export default function NavMenu({ logoText, siteInfo, menu }) {
             const subs = subItems(link)
             if (subs.length === 0) {
               return (
-                <SmartLink key={linkKey(link)} href={link.href || '/'}>
+                <SmartLink
+                  key={linkKey(link)}
+                  href={resolveHref(link.href || '/')}>
                   {linkLabel(link)}
                 </SmartLink>
               )
             }
             return (
               <div className='navdd' key={linkKey(link)}>
-                <SmartLink href={link.href || '/'} className='navbtn'>
+                <SmartLink
+                  href={resolveHref(link.href || '/')}
+                  className='navbtn'>
                   {linkLabel(link)}
                   <span className='caret'>▾</span>
                 </SmartLink>
                 <div className='navmenu' data-testid='ft-navmenu'>
                   {subs.map(sub => (
-                    <SmartLink key={linkKey(sub)} href={sub.href || '/'}>
+                    <SmartLink
+                      key={linkKey(sub)}
+                      href={resolveHref(sub.href || '/')}>
                       {linkLabel(sub)}
                     </SmartLink>
                   ))}

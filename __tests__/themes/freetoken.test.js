@@ -1098,6 +1098,24 @@ describe('themes/freetoken 菜单与可访问性', () => {
     expect(document.querySelector('.navdd')).toBeTruthy()
   })
 
+  test('OAuth 结果页的导航链接不继承回调查询参数', () => {
+    render(
+      <LayoutBase
+        customMenu={mockCustomMenu}
+        siteInfo={{ title: 'Hub' }}
+        authResultQuery={{ status: 'success' }}
+      />
+    )
+
+    const nav = screen.getByTestId('ft-navlinks')
+    nav.querySelectorAll('a').forEach(link => {
+      expect(link.getAttribute('href')).not.toContain('access_token')
+      expect(link.getAttribute('href')).not.toContain('workspace_id')
+    })
+    expect(within(nav).getByText('模型库')).toHaveAttribute('href', '/')
+    expect(within(nav).getByText('平台')).toHaveAttribute('href', '/')
+  })
+
   test('回到顶部按钮存在且默认隐藏', () => {
     const { container } = render(
       <LayoutBase siteInfo={{ title: 'Hub' }}>

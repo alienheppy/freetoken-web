@@ -15,7 +15,14 @@ import NavMenu from './NavMenu'
  * 无左侧边栏；菜单优先级：Notion customMenu → customNav → 内置回退（原设计三链接）
  */
 export default function LayoutBase(props) {
-  const { children, customMenu, customNav, siteInfo, allNavPages } = props
+  const {
+    children,
+    customMenu,
+    customNav,
+    siteInfo,
+    allNavPages,
+    authResultQuery
+  } = props
 
   const menu =
     customMenu?.length > 0
@@ -31,7 +38,12 @@ export default function LayoutBase(props) {
     <div id='theme-freetoken'>
       <Style />
       <LoadingIndicator />
-      <NavMenu logoText={logoText} siteInfo={siteInfo} menu={menu} />
+      <NavMenu
+        logoText={logoText}
+        siteInfo={siteInfo}
+        menu={menu}
+        linkHref={authResultQuery ? '/' : null}
+      />
       {children}
       <BackToTop />
       <Footer siteInfo={siteInfo} latestVerifiedAt={latestVerified} />
