@@ -719,10 +719,31 @@ const Style = () => (
 
     /* 上一页 / 下一页：沿用基础药丸样式（浅底 + 细边框），悬停时描边转黑 */
     #theme-freetoken .pgbtn:first-child,
-    #theme-freetoken .pgbtn:last-child {
+    #theme-freetoken .pgbtn[aria-label='下一页'] {
       padding: 0 18px;
       font-size: 16px;
       line-height: 1;
+    }
+
+    /* 折叠位「…」：可点，一次跳 5 页（比不可点的省略号更有用） */
+    #theme-freetoken .pgbtn.pggap {
+      color: var(--faint);
+      letter-spacing: 0.08em;
+      background: transparent;
+      border-color: transparent;
+    }
+
+    /* 悬停只提亮文字，描边沿用下方通用规则（与其他页码一致转黑） */
+    #theme-freetoken .pgbtn.pggap:hover:not(:disabled) {
+      color: var(--txt);
+    }
+
+    /* 总页数提示：规模一眼可见（模型库 12 页 / 平台 7 页） */
+    #theme-freetoken .pgcount {
+      margin-left: 6px;
+      font-size: 13px;
+      color: var(--faint);
+      white-space: nowrap;
     }
 
     #theme-freetoken .pgbtn:hover:not(:disabled):not(.on) {

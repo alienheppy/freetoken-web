@@ -270,7 +270,16 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     // 底栏展示「模型提供商 N」= 该模型已收录的免费供应商数（与平台标签同源）
     expect(first.querySelector('.ctxrow span').textContent).toBe('模型提供商')
     expect(first.querySelector('.ctxrow b').textContent).toBe('2')
-    expect(first.querySelectorAll('.tag').length).toBeGreaterThan(1)
+    // 标签行只放模型自身属性（能力 / 过期）：GPT-4o = 视觉 + 工具（过期徽标取决于当天）
+    const cardTags = Array.from(first.querySelectorAll('.mtags .tag')).map(
+      t => t.textContent
+    )
+    expect(cardTags.filter(t => t !== '过期')).toEqual(['视觉', '工具'])
+    expect(cardTags.every(t => ['过期', '视觉', '工具', '推理'].includes(t))).toBe(
+      true
+    )
+    // 具体由哪些平台提供不再出现在卡片上（渠道信息由底栏数量 + 详情页承载）
+    expect(first.querySelector('.mtags').textContent).not.toContain('OpenRouter')
 
     // 过期条目：原设计的 stale 弱化 + 徽标 + 角标
     const stale = grid.querySelector('.mcard.stale')
@@ -516,8 +525,8 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(screen.queryByTestId('ft-pager')).toBeNull()
   })
 
-  test('模型库翻页：页码固定 5 槽（滑动窗口），翻页时按钮数量不变（左右箭头不位移）', () => {
-    // 90 个模型 / 每页 9 → 10 页，超过 5 页时窗口滑动。
+  test('模型库翻页：首末页常驻 + 可点「…」跳 3 页 + 总页数提示（页数多时也能一键到两端）', () => {
+    // 90 个模型 / 每页 9 → 10 页。
     const makeModels = n =>
       Array.from({ length: n }, (_, i) => ({
         id: `m${i}`,
@@ -530,21 +539,55 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     const { container } = render(
       <ModelToolbar models={adaptPosts(many)} today='2026-10-15' />
     )
-    const countSlots = () => container.querySelectorAll('.pager .pgbtn').length
-    const first = countSlots()
-    // 上一页 + 5 个页码 + 下一页 = 7 个按钮
-    expect(first).toBe(7)
-
     const pager = screen.getByTestId('ft-pager')
-    // 依次点到中间、末页，页码按钮数量必须始终为固定 5 槽
-    for (let i = 0; i < 9; i++) {
-      fireEvent.click(within(pager).getByRole('button', { name: '下一页' }))
-      expect(countSlots()).toBe(first)
-    }
-    // 末页可见窗口应包含最后一页
+    const pageNums = () =>
+      Array.from(container.querySelectorAll('.pager .pgbtn'))
+        .map(b => b.textContent)
+        .filter(t => /^\d+$/.test(t))
+
+    // 第 1 页：首页 + 后续页码 + 末页常驻
+    expect(pageNums()).toEqual(['1', '2', '3', '4', '10'])
+    expect(screen.getByTestId('ft-pager-count').textContent).toBe('1/10')
+    expect(
+      within(pager).getByRole('button', { name: '10' })
+    ).toBeInTheDocument()
+
+    // 末页常驻 → 一键直达末页，不必连点 9 次
+    fireEvent.click(within(pager).getByRole('button', { name: '10' }))
+    expect(screen.getByTestId('ft-pager-count').textContent).toBe('10/10')
     expect(
       within(pager).getByRole('button', { name: '10' })
     ).toHaveAttribute('aria-current', 'page')
+    expect(pageNums()).toEqual(['1', '7', '8', '9', '10'])
+
+    // 回到第 1 页，用「…」一次跳 3 页（步长克制，不丢失方向感）
+    fireEvent.click(within(pager).getByRole('button', { name: '1' }))
+    expect(screen.getByTestId('ft-pager-count').textContent).toBe('1/10')
+    fireEvent.click(within(pager).getByRole('button', { name: '向后 3 页' }))
+    expect(screen.getByTestId('ft-pager-count').textContent).toBe('4/10')
+
+    // 末页的「…」往回跳 3 页
+    fireEvent.click(within(pager).getByRole('button', { name: '10' }))
+    fireEvent.click(within(pager).getByRole('button', { name: '向前 3 页' }))
+    expect(screen.getByTestId('ft-pager-count').textContent).toBe('7/10')
+  })
+
+  test('模型库翻页：页数不多（<= 7）时不折叠，全部页码直接列出', () => {
+    // 63 个模型 / 每页 9 → 7 页
+    const models = Array.from({ length: 63 }, (_, i) => ({
+      id: `m${i}`,
+      title: `Model ${String(i).padStart(3, '0')}`,
+      href: `/model-${i}`,
+      ext: { platforms: ['P1'] }
+    }))
+    const { container } = render(
+      <ModelToolbar models={adaptPosts(models)} today='2026-10-15' />
+    )
+    const nums = Array.from(container.querySelectorAll('.pager .pgbtn'))
+      .map(b => b.textContent)
+      .filter(t => /^\d+$/.test(t))
+    expect(nums).toEqual(['1', '2', '3', '4', '5', '6', '7'])
+    expect(container.querySelector('.pager .pggap')).toBeNull()
   })
 
   test('首页无数据时使用原设计空态样式', () => {
