@@ -572,9 +572,9 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(screen.getByTestId('ft-pager-count').textContent).toBe('7/10')
   })
 
-  test('模型库翻页：页数不多（<= 7）时不折叠，全部页码直接列出', () => {
-    // 63 个模型 / 每页 9 → 7 页
-    const models = Array.from({ length: 63 }, (_, i) => ({
+  test('模型库翻页：页数不多（<= 5）时不折叠，全部页码直接列出', () => {
+    // 45 个模型 / 每页 9 → 5 页
+    const models = Array.from({ length: 45 }, (_, i) => ({
       id: `m${i}`,
       title: `Model ${String(i).padStart(3, '0')}`,
       href: `/model-${i}`,
@@ -586,7 +586,7 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     const nums = Array.from(container.querySelectorAll('.pager .pgbtn'))
       .map(b => b.textContent)
       .filter(t => /^\d+$/.test(t))
-    expect(nums).toEqual(['1', '2', '3', '4', '5', '6', '7'])
+    expect(nums).toEqual(['1', '2', '3', '4', '5'])
     expect(container.querySelector('.pager .pggap')).toBeNull()
   })
 
@@ -628,6 +628,35 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(within(pager).getByRole('button', { name: '下一页' })).toBeEnabled()
     fireEvent.click(within(pager).getByRole('button', { name: '下一页' }))
     expect(screen.getAllByTestId('ft-platform')).toHaveLength(3)
+  })
+
+  test('平台一览翻页：与模型库同一套折叠逻辑（7 页时首末常驻 + 可点「…」跳 3 页）', () => {
+    // 63 个平台 / 每页 9 → 7 页
+    const models = Array.from({ length: 63 }, (_, i) => ({
+      id: `m${i}`,
+      title: `Model ${i}`,
+      href: `/model-${i}`,
+      ext: { platforms: [`Platform${String(i).padStart(2, '0')}`] }
+    }))
+    render(<LayoutIndex posts={models} />)
+    const pager = screen.getByTestId('ft-platform-pager')
+    const nums = () =>
+      Array.from(pager.querySelectorAll('.pgbtn'))
+        .map(b => b.textContent)
+        .filter(t => /^\d+$/.test(t))
+
+    expect(nums()).toEqual(['1', '2', '3', '4', '7'])
+    expect(within(pager).getByTestId('ft-pager-count').textContent).toBe('1/7')
+    expect(pager.querySelectorAll('.pggap')).toHaveLength(1)
+
+    // 与模型库一致：末页常驻，可一键到末页
+    fireEvent.click(within(pager).getByRole('button', { name: '7' }))
+    expect(within(pager).getByTestId('ft-pager-count').textContent).toBe('7/7')
+
+    // 回到第 1 页后，用「…」一次跳 3 页
+    fireEvent.click(within(pager).getByRole('button', { name: '1' }))
+    fireEvent.click(within(pager).getByRole('button', { name: '向后 3 页' }))
+    expect(within(pager).getByTestId('ft-pager-count').textContent).toBe('4/7')
   })
 
   test('平台卡片整卡可点进入平台详情页，且「前往官网」为独立外链', () => {
