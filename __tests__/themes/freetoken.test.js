@@ -81,6 +81,7 @@ import {
   platformCards,
   platformHref,
   providerOptions,
+  resolveCurlModelId,
   sortModelsBy,
   staleTitle,
   togglePlatformSort
@@ -1139,6 +1140,21 @@ const makePost = overrides => ({
 })
 
 describe('themes/freetoken lib/adaptModel 严格解析', () => {
+  test('modelId 保留供应商 API 模型名，站内 id 只作为路由 slug', () => {
+    const model = adaptPost(
+      makePost({
+        slug: 'site-route-slug',
+        ext: { modelId: ' vendor/real-model:free ' }
+      })
+    )
+    expect(model.id).toBe('site-route-slug')
+    expect(model.modelId).toBe('vendor/real-model:free')
+
+    const missing = adaptPost(makePost({ slug: 'another-route', ext: {} }))
+    expect(missing.id).toBe('another-route')
+    expect(missing.modelId).toBe('')
+  })
+
   test('缺失 ext / 非对象输入 → 安全默认（pending、0、空数组）', () => {
     const model = adaptPost(makePost({ ext: undefined }))
     expect(model.verificationStatus).toBe('pending')
@@ -1578,6 +1594,19 @@ describe('themes/freetoken lib/modelView 视图层工具', () => {
     expect(code).toContain('"model": "nex-agi/nex-n2.5-mini:free"')
     expect(code).toContain('-H "Authorization: Bearer ***"')
     expect(buildCurl({ id: 'x' }, '')).toContain('curl https://openrouter.ai/api/v1/')
+    expect(
+      resolveCurlModelId(
+        { modelId: 'provider/row-model' },
+        { modelId: 'provider/model-fallback', id: 'site-slug' }
+      )
+    ).toBe('provider/row-model')
+    expect(
+      resolveCurlModelId(
+        {},
+        { modelId: 'provider/model-fallback', id: 'site-slug' }
+      )
+    ).toBe('provider/model-fallback')
+    expect(resolveCurlModelId({}, { id: 'site-slug' })).toBe('')
 
     const rows = offerRows(models[0])
     expect(rows.map(r => r.name)).toEqual(['OpenRouter', 'GitHub Models'])
@@ -1792,8 +1821,8 @@ describe('themes/freetoken 方案A：平台档案 join（平台/模型解耦）'
 
 describe('themes/freetoken 免费获取渠道清单（可检索 + 渐进展开）', () => {
   const rows = [
-    { name: 'Kiraai', url: 'https://kiraai.vn', desc: '很好', context: 128 * 1024, baseUrl: 'https://kiraai.vn/api/v1', guide: '1. 注册\n2. 建 Key', quota: '1.5 亿代币' },
-    { name: 'Pkay', url: 'https://pkay.fun', desc: '很棒', context: 12000, baseUrl: 'https://api.pkay.fun/v1', guide: '看官网', quota: '25 亿令牌' },
+    { name: 'Kiraai', modelId: 'vendor/kiraai-model:free', url: 'https://kiraai.vn', desc: '很好', context: 128 * 1024, baseUrl: 'https://kiraai.vn/api/v1', guide: '1. 注册\n2. 建 Key', quota: '1.5 亿代币' },
+    { name: 'Pkay', modelId: 'vendor/pkay-model:free', url: 'https://pkay.fun', desc: '很棒', context: 12000, baseUrl: 'https://api.pkay.fun/v1', guide: '看官网', quota: '25 亿令牌' },
     { name: 'ZeroAI', url: 'https://zero.ai', desc: '一般', context: 0, baseUrl: '', guide: '', quota: '' }
   ]
   const renderOffers = rs =>
@@ -1816,6 +1845,55 @@ describe('themes/freetoken 免费获取渠道清单（可检索 + 渐进展开�
     fireEvent.click(screen.getAllByText('接入方式')[0])
     expect(screen.getByText(/chat\/completions/)).toBeInTheDocument()
     expect(screen.getAllByText(/kiraai\.vn\/api\/v1/).length).toBeGreaterThan(0)
+  })
+
+  test('渠道未填模型ID时使用 ext.modelId，不使用站内 slug', () => {
+    const { container } = render(
+      <LayoutSlug
+        post={{
+          id: 'd-model-id',
+          slug: 'site-detail-slug',
+          title: 'Model ID',
+          href: '/site-detail-slug',
+          ext: { modelId: 'vendor/actual-model:free' }
+        }}
+        offerRowsOverride={[
+          {
+            name: 'Kiraai',
+            baseUrl: 'https://kiraai.vn/api/v1',
+            guide: ''
+          }
+        ]}
+      />
+    )
+    fireEvent.click(screen.getByText('接入方式'))
+    const code = container.querySelector('.opanel-code code')?.textContent || ''
+    expect(code).toContain('"model": "vendor/actual-model:free"')
+    expect(code).not.toContain('"model": "site-detail-slug"')
+  })
+
+  test('仅缺模型ID时仍保留接入说明，但不生成错误 curl', () => {
+    render(
+      <LayoutSlug
+        post={{
+          id: 'd-no-model-id',
+          slug: 'site-detail-slug',
+          title: 'Missing Model ID',
+          href: '/site-detail-slug',
+          ext: {}
+        }}
+        offerRowsOverride={[
+          {
+            name: 'Kiraai',
+            baseUrl: 'https://kiraai.vn/api/v1',
+            guide: '注册后到控制台创建 Key'
+          }
+        ]}
+      />
+    )
+    fireEvent.click(screen.getByText('接入方式'))
+    expect(screen.getByText('注册后到控制台创建 Key')).toBeInTheDocument()
+    expect(screen.queryByText(/chat\/completions/)).toBeNull()
   })
 
   test('搜索过滤 + 排序（上下文最大 / A→Z）', () => {

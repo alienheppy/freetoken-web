@@ -372,6 +372,18 @@ export function daysFrom(dateStr, today) {
 }
 
 /**
+ * 渠道调用示例实际应使用的 API 模型 ID。
+ * 站内详情页 slug 只用于路由，绝不能作为供应商 API 的 model 值。
+ * @param {{modelId?: string}} row
+ * @param {{modelId?: string}} model
+ * @returns {string}
+ */
+export function resolveCurlModelId(row, model) {
+  const normalize = value => (typeof value === 'string' ? value.trim() : '')
+  return normalize(row?.modelId) || normalize(model?.modelId)
+}
+
+/**
  * 详情页 curl 示例（原设计 model/[slug]/page.jsx 同款拼装，Key 占位为 ***）
  * @param {{id?: string}} model
  * @param {string} apiBase OpenAI 兼容 base_url

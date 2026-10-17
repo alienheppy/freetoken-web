@@ -219,6 +219,7 @@ export function parseExt(raw) {
 function emptyModel() {
   const model = {
     id: '',
+    modelId: '',
     name: '',
     provider: '',
     platforms: [],
@@ -279,7 +280,9 @@ export function adaptPost(post) {
   }
 
   const model = {
+    // id 是站内路由标识；modelId 才是供应商 API 实际接受的模型名。
     id: toNonEmptyString(post.slug) || toNonEmptyString(post.short_id) || toNonEmptyString(post.id),
+    modelId: toNonEmptyString(ext.modelId),
     name: toNonEmptyString(post.title) || toNonEmptyString(post.name),
     provider: toNonEmptyString(ext.provider),
     platforms: toPlatformArray(ext.platforms),

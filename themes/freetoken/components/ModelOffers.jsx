@@ -5,8 +5,36 @@ import { useMemo, useState } from 'react'
 import SmartLink from '@/components/SmartLink'
 
 import { fmtCtx } from '../lib/adaptModel'
-import { buildCurl, platformHref } from '../lib/modelView'
+import {
+  buildCurl,
+  platformHref,
+  resolveCurlModelId
+} from '../lib/modelView'
 import CopyButton from './CopyButton'
+
+/**
+ * @typedef {object} PlatformProfile
+ * @property {string} [name]
+ */
+
+/**
+ * @typedef {object} OfferRow
+ * @property {string} [name]
+ * @property {string} [desc]
+ * @property {string} [guide]
+ * @property {string} [baseUrl]
+ * @property {string} [quota]
+ * @property {string} [modelId]
+ * @property {number} [context]
+ * @property {string} [url]
+ * @property {PlatformProfile} [platformProfile]
+ */
+
+/**
+ * @typedef {object} OfferModel
+ * @property {string} [id]
+ * @property {string} [modelId]
+ */
 
 /**
  * 详情页「免费获取渠道」区块 —— 可检索的紧凑清单
@@ -26,6 +54,7 @@ import CopyButton from './CopyButton'
  *   免费额度    → 标题旁徽标
  *   上下文      → 「上下文」列
  *   baseUrl     → 「Base URL」列 + 展开后的 curl
+ *   模型ID      → curl 的 model 值；缺失时回退模型级 ext.modelId，绝不使用站内 slug
  *   接入说明    → 展开后的接入步骤
  *   网址        → 「前往官网」外链
  *
@@ -39,6 +68,7 @@ const SORTS = [
   { key: 'name', label: 'A → Z' }
 ]
 
+/** @param {{ model?: OfferModel, rows?: OfferRow[] }} props */
 export default function ModelOffers({ model, rows }) {
   const list = useMemo(
     () => (Array.isArray(rows) ? rows.filter(r => r && typeof r === 'object') : []),
@@ -112,8 +142,9 @@ export default function ModelOffers({ model, rows }) {
           const key = (row.name || 'offer') + '#' + i
           const guide = String(row.guide || '').trim()
           const baseUrl = String(row.baseUrl || '').trim()
-          const modelId = String(row.modelId || model?.id || '').trim()
-          const curl = baseUrl ? buildCurl({ id: modelId }, baseUrl) : ''
+          const modelId = resolveCurlModelId(row, model)
+          const curl =
+            baseUrl && modelId ? buildCurl({ id: modelId }, baseUrl) : ''
           const hasDetail = Boolean(guide || curl)
           const open = openKey === key
           return (
