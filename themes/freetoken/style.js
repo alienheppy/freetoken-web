@@ -104,6 +104,7 @@ const Style = () => (
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 16px;
     }
 
     #theme-freetoken .logo {
@@ -115,9 +116,11 @@ const Style = () => (
     #theme-freetoken .navlinks {
       display: flex;
       align-items: center;
+      justify-content: flex-end;
       gap: 28px;
       font-size: 12px;
       color: var(--sub);
+      white-space: nowrap;
     }
 
     #theme-freetoken .navlinks a {
@@ -1738,6 +1741,44 @@ const Style = () => (
       }
     }
 
+    @media (max-width: 600px) {
+      #theme-freetoken .orow {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px 12px;
+        padding: 15px 16px;
+      }
+
+      #theme-freetoken .omain {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      #theme-freetoken .octx {
+        grid-column: 2;
+        grid-row: 1;
+        text-align: right;
+      }
+
+      #theme-freetoken .obase {
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+
+      #theme-freetoken .oact {
+        grid-column: 1 / -1;
+        grid-row: 3;
+      }
+
+      #theme-freetoken .odesc {
+        white-space: normal;
+        line-height: 1.55;
+      }
+
+      #theme-freetoken .opanel {
+        padding: 0 16px 16px;
+      }
+    }
+
     #theme-freetoken .code {
       background: #1d1d1f;
       color: #f5f5f7;
@@ -1897,6 +1938,36 @@ const Style = () => (
       }
     }
 
+    @media (max-width: 640px) {
+      #theme-freetoken .navin {
+        padding: 0 18px;
+        gap: 12px;
+      }
+
+      #theme-freetoken .logo {
+        flex-shrink: 0;
+        font-size: 16px;
+      }
+
+      #theme-freetoken .navlinks {
+        min-width: 0;
+        gap: 16px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+
+      #theme-freetoken .navlinks::-webkit-scrollbar {
+        display: none;
+      }
+
+      #theme-freetoken .navlinks > * {
+        flex-shrink: 0;
+      }
+    }
+
     @media (max-width: 600px) {
       #theme-freetoken .grid,
       #theme-freetoken .plats {
@@ -1921,12 +1992,39 @@ const Style = () => (
       #theme-freetoken .stat .n {
         font-size: 28px;
       }
+
+      #theme-freetoken .feat {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 3px 9px;
+        padding: 13px 2px;
+      }
+
+      #theme-freetoken .feat .fd {
+        grid-column: 2;
+        max-width: none;
+        margin-left: 0;
+        text-align: left;
+        line-height: 1.55;
+      }
     }
 
     @media (max-width: 520px) {
       #theme-freetoken .facts {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
       }
+
+      #theme-freetoken .fact {
+        min-height: 82px;
+        padding: 15px 16px;
+      }
+
+      #theme-freetoken .fact .v {
+        font-size: 17px;
+        overflow-wrap: anywhere;
+      }
+
       #theme-freetoken .detail :where(h1:not(#article-wrapper h1)) {
         font-size: 34px;
       }
