@@ -1299,6 +1299,26 @@ describe('themes/freetoken 菜单与可访问性', () => {
     expect(links).not.toHaveClass('open')
   })
 
+  test('移动端页面滚动时自动收起菜单和二级菜单', () => {
+    render(
+      <LayoutBase customMenu={mockCustomMenu} siteInfo={{ title: 'Hub' }} />
+    )
+    const links = screen.getByTestId('ft-navlinks')
+    const submenu = screen.getByTestId('ft-navmenu')
+
+    fireEvent.click(screen.getByRole('button', { name: '打开菜单' }))
+    fireEvent.click(screen.getByRole('button', { name: '展开模型库子菜单' }))
+    expect(links).toHaveClass('open')
+    expect(submenu).toHaveClass('open')
+
+    fireEvent.scroll(window)
+    expect(links).not.toHaveClass('open')
+    expect(submenu).not.toHaveClass('open')
+    expect(
+      screen.getByRole('button', { name: '打开菜单' })
+    ).toHaveAttribute('aria-expanded', 'false')
+  })
+
   test('OAuth 结果页的导航链接不继承回调查询参数', () => {
     render(
       <LayoutBase

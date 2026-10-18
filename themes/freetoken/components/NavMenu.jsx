@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import SmartLink from '@/components/SmartLink'
 
@@ -37,6 +37,13 @@ export default function NavMenu({ logoText, siteInfo, menu, linkHref }) {
     setOpen(false)
     setOpenSubmenu(null)
   }
+
+  useEffect(() => {
+    if (!open) return
+    const handleScroll = () => closeMenu()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [open])
 
   return (
     <nav>
