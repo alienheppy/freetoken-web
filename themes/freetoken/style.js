@@ -1224,6 +1224,24 @@ const Style = () => (
       transition: transform 0.35s ease;
     }
 
+    #theme-freetoken .hero-promo-badge {
+      position: absolute;
+      z-index: 1;
+      top: 12px;
+      left: 12px;
+      padding: 5px 9px;
+      border-radius: 980px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.58);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: 0.04em;
+      pointer-events: none;
+    }
+
     #theme-freetoken .hero-promo::after {
       content: "前往官网 ↗";
       position: absolute;

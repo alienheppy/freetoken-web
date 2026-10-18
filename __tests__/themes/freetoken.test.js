@@ -1510,6 +1510,7 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
     expect(promo).toHaveAttribute('target', '_blank')
     expect(promo).toHaveAttribute('rel', 'noopener noreferrer sponsored')
     expect(promo).toHaveAttribute('title', '点击前往邀请页面')
+    expect(within(promo).getByText('赞助商')).toHaveClass('hero-promo-badge')
     expect(within(promo).getByRole('img')).toHaveAttribute(
       'src',
       'https://files.example.com/promo.jpg'

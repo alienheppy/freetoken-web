@@ -73,6 +73,7 @@ export default function ModelDetailHero({ model, today }) {
             } 推广链接（新窗口）`}
             data-testid='ft-hero-promo'
           >
+            <span className='hero-promo-badge'>赞助商</span>
             <img
               src={model.promoImageUrl}
               alt={model.promoAlt || `${model.name} 推广图`}
