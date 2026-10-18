@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 import SmartLink from '@/components/SmartLink'
 
 /**
@@ -22,12 +24,18 @@ const subItems = link =>
   )
 
 export default function NavMenu({ logoText, siteInfo, menu, linkHref }) {
+  const [open, setOpen] = useState(false)
+  const [openSubmenu, setOpenSubmenu] = useState(null)
   const items = visibleItems(menu)
   const resolveHref = href => {
     if (!linkHref) return href || '/'
     if (typeof href === 'string' && href === '#') return linkHref
     if (typeof href === 'string' && href.startsWith('#')) return href
     return linkHref
+  }
+  const closeMenu = () => {
+    setOpen(false)
+    setOpenSubmenu(null)
   }
 
   return (
@@ -37,31 +45,74 @@ export default function NavMenu({ logoText, siteInfo, menu, linkHref }) {
           {logoText || siteInfo?.title || 'FreeTokenHub'}
         </SmartLink>
 
-        <div className='navlinks' data-testid='ft-navlinks'>
+        <button
+          type='button'
+          className={'navtoggle' + (open ? ' open' : '')}
+          aria-label={open ? '关闭菜单' : '打开菜单'}
+          aria-controls='ft-mobile-menu'
+          aria-expanded={open}
+          onClick={() => {
+            if (open) closeMenu()
+            else setOpen(true)
+          }}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+
+        <div
+          id='ft-mobile-menu'
+          className={'navlinks' + (open ? ' open' : '')}
+          data-testid='ft-navlinks'
+        >
           {items.map(link => {
             const subs = subItems(link)
             if (subs.length === 0) {
               return (
                 <SmartLink
                   key={linkKey(link)}
-                  href={resolveHref(link.href || '/')}>
+                  href={resolveHref(link.href || '/')}
+                  onClick={closeMenu}
+                >
                   {linkLabel(link)}
                 </SmartLink>
               )
             }
+            const submenuOpen = openSubmenu === linkKey(link)
             return (
               <div className='navdd' key={linkKey(link)}>
-                <SmartLink
-                  href={resolveHref(link.href || '/')}
-                  className='navbtn'>
-                  {linkLabel(link)}
-                  <span className='caret'>▾</span>
-                </SmartLink>
-                <div className='navmenu' data-testid='ft-navmenu'>
+                <div className={'navbtn' + (submenuOpen ? ' open' : '')}>
+                  <SmartLink
+                    href={resolveHref(link.href || '/')}
+                    onClick={closeMenu}
+                  >
+                    {linkLabel(link)}
+                  </SmartLink>
+                  <button
+                    type='button'
+                    className='navsubtoggle'
+                    aria-label={`${submenuOpen ? '收起' : '展开'}${linkLabel(link)}子菜单`}
+                    aria-expanded={submenuOpen}
+                    onClick={() =>
+                      setOpenSubmenu(current =>
+                        current === linkKey(link) ? null : linkKey(link)
+                      )
+                    }
+                  >
+                    <span className='caret'>▾</span>
+                  </button>
+                </div>
+                <div
+                  className={'navmenu' + (submenuOpen ? ' open' : '')}
+                  data-testid='ft-navmenu'
+                >
                   {subs.map(sub => (
                     <SmartLink
                       key={linkKey(sub)}
-                      href={resolveHref(sub.href || '/')}>
+                      href={resolveHref(sub.href || '/')}
+                      onClick={closeMenu}
+                    >
                       {linkLabel(sub)}
                     </SmartLink>
                   ))}

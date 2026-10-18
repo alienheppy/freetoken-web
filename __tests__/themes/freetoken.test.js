@@ -792,6 +792,11 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(within(root).getByText('聚合平台')).toBeInTheDocument()
     expect(within(root).getByText('新账户送额度')).toBeInTheDocument()
     expect(within(root).getByText('3 个免费模型')).toBeInTheDocument()
+    expect(within(root).queryByText(/^上下文 /)).toBeNull()
+    expect(within(root).getByRole('link', { name: '前往官网' })).toHaveAttribute(
+      'href',
+      'https://openrouter.ai'
+    )
     // 平台简介区块：标题 + 正文（来自 Notion「平台简介100字介绍」）
     const introSection = within(root).getByTestId('ft-platform-intro')
     expect(within(introSection).getByText('平台简介。')).toBeInTheDocument()
@@ -1246,6 +1251,52 @@ describe('themes/freetoken 菜单与可访问性', () => {
       '/category/oss'
     )
     expect(document.querySelector('.navdd')).toBeTruthy()
+  })
+
+  test('移动端二级菜单默认收起，点击父项展开，选择子项后关闭', () => {
+    render(
+      <LayoutBase customMenu={mockCustomMenu} siteInfo={{ title: 'Hub' }} />
+    )
+    const toggle = screen.getByRole('button', { name: '打开菜单' })
+    const links = screen.getByTestId('ft-navlinks')
+    const parent = screen.getByRole('link', { name: '模型库' })
+    const submenuToggle = screen.getByRole('button', { name: '展开模型库子菜单' })
+    const submenu = screen.getByTestId('ft-navmenu')
+
+    fireEvent.click(toggle)
+    expect(parent).toHaveAttribute('href', '/#models')
+    expect(submenuToggle).toHaveAttribute('aria-expanded', 'false')
+    expect(submenu).not.toHaveClass('open')
+
+    fireEvent.click(submenuToggle)
+    expect(
+      screen.getByRole('button', { name: '收起模型库子菜单' })
+    ).toHaveAttribute('aria-expanded', 'true')
+    expect(submenu).toHaveClass('open')
+    expect(links).toHaveClass('open')
+
+    fireEvent.click(within(submenu).getByText('开源模型'))
+    expect(links).not.toHaveClass('open')
+    expect(submenu).not.toHaveClass('open')
+  })
+
+  test('移动端菜单按钮可打开、关闭菜单', () => {
+    render(<LayoutBase siteInfo={{ title: 'Hub' }} />)
+    const toggle = screen.getByRole('button', { name: '打开菜单' })
+    const links = screen.getByTestId('ft-navlinks')
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(links).not.toHaveClass('open')
+
+    fireEvent.click(toggle)
+    expect(screen.getByRole('button', { name: '关闭菜单' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    )
+    expect(links).toHaveClass('open')
+
+    fireEvent.click(within(links).getByText('模型库'))
+    expect(links).not.toHaveClass('open')
   })
 
   test('OAuth 结果页的导航链接不继承回调查询参数', () => {

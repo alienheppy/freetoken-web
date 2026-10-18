@@ -131,6 +131,10 @@ const Style = () => (
       color: var(--txt);
     }
 
+    #theme-freetoken .navtoggle {
+      display: none;
+    }
+
     /* 扩展：customMenu 二级项下拉（视觉同 .sortdd/.sortmenu） */
     #theme-freetoken .navdd {
       position: relative;
@@ -140,6 +144,17 @@ const Style = () => (
       display: inline-flex;
       align-items: center;
       gap: 5px;
+    }
+
+    #theme-freetoken .navsubtoggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border: 0;
+      font: inherit;
+      color: inherit;
+      background: transparent;
       cursor: pointer;
     }
 
@@ -298,7 +313,7 @@ const Style = () => (
       font-size: 17px;
       color: var(--sub);
       margin-top: 8px;
-      white-space: nowrap;
+      white-space: normal;
     }
 
     /* notice */
@@ -1095,7 +1110,7 @@ const Style = () => (
     }
 
     /* 移动端：表格降级为堆叠卡片，用 data-label 前缀标注列含义；
-       表头不再隐藏，改成一行可换行的排序按钮，保证手机上也能排序。 */
+       表头只保留「模型」排序，其余列标签已在每张卡片内展示。 */
     @media (max-width: 760px) {
       /* 手机上每行是堆叠卡片、行高大得多，限高会变成「陷进内部滚动」的死区，
          交还给整页滚动更自然。 */
@@ -1111,10 +1126,21 @@ const Style = () => (
         padding: 12px 20px;
       }
 
+      #theme-freetoken .phead > .psort:not(:first-child) {
+        display: none;
+      }
+
       #theme-freetoken .prow {
         grid-template-columns: 1fr;
         gap: 10px;
         padding: 18px 20px;
+      }
+
+      #theme-freetoken .pmdesc {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        line-height: 1.55;
       }
 
       #theme-freetoken .pctx,
@@ -1346,7 +1372,7 @@ const Style = () => (
     #theme-freetoken .pmetabtn {
       display: inline-flex;
       align-items: center;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: #fff;
       background: var(--blue);
@@ -1742,6 +1768,21 @@ const Style = () => (
     }
 
     @media (max-width: 600px) {
+      #theme-freetoken .platform-meta .pmetabtn {
+        height: 27px;
+        padding: 0 13px;
+        font-size: 12px;
+        margin-left: 0;
+      }
+
+      #theme-freetoken .platform-meta .hpill {
+        display: inline-flex;
+        align-items: center;
+        height: 27px;
+        padding: 0 13px;
+        font-size: 12px;
+      }
+
       #theme-freetoken .orow {
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 8px 12px;
@@ -1934,7 +1975,7 @@ const Style = () => (
         gap: 28px;
       }
       #theme-freetoken .hero-promo {
-        max-width: 334px;
+        max-width: none;
       }
     }
 
@@ -1949,22 +1990,125 @@ const Style = () => (
         font-size: 16px;
       }
 
+      #theme-freetoken .navtoggle {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        width: 34px;
+        height: 34px;
+        margin-left: auto;
+        padding: 0;
+        border: 0;
+        border-radius: 10px;
+        color: var(--txt);
+        background: transparent;
+        cursor: pointer;
+      }
+
+      #theme-freetoken .navtoggle span {
+        display: block;
+        width: 17px;
+        height: 1.5px;
+        border-radius: 999px;
+        background: currentColor;
+        transition:
+          transform 0.18s ease,
+          opacity 0.18s ease;
+      }
+
+      #theme-freetoken .navtoggle.open span:nth-child(1) {
+        transform: translateY(5.5px) rotate(45deg);
+      }
+
+      #theme-freetoken .navtoggle.open span:nth-child(2) {
+        opacity: 0;
+      }
+
+      #theme-freetoken .navtoggle.open span:nth-child(3) {
+        transform: translateY(-5.5px) rotate(-45deg);
+      }
+
       #theme-freetoken .navlinks {
-        min-width: 0;
-        gap: 16px;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        overscroll-behavior-x: contain;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
+        position: absolute;
+        top: calc(100% + 1px);
+        right: 14px;
+        left: 14px;
+        display: block;
+        padding: 8px;
+        border: 1px solid var(--hairline);
+        border-radius: 16px;
+        background: var(--card);
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.14);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-6px);
+        transition:
+          opacity 0.18s ease,
+          transform 0.18s ease,
+          visibility 0.18s;
       }
 
-      #theme-freetoken .navlinks::-webkit-scrollbar {
+      #theme-freetoken .navlinks.open {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+
+      #theme-freetoken .navlinks > a,
+      #theme-freetoken .navlinks > .navdd > .navbtn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        border-radius: 10px;
+        font-size: 14px;
+      }
+
+      #theme-freetoken .navlinks > .navdd > .navbtn > a {
+        flex: 1;
+      }
+
+      #theme-freetoken .navlinks > a:hover,
+      #theme-freetoken .navlinks > .navdd > .navbtn:hover {
+        background: var(--bg-alt);
+      }
+
+      #theme-freetoken .navlinks .navmenu {
+        position: static;
         display: none;
+        min-width: 0;
+        padding: 0 0 4px 12px;
+        border: 0;
+        box-shadow: none;
+        opacity: 0;
+        visibility: hidden;
+        transform: none;
       }
 
-      #theme-freetoken .navlinks > * {
-        flex-shrink: 0;
+      #theme-freetoken .navlinks .navmenu.open {
+        display: block;
+        opacity: 1;
+        visibility: visible;
+      }
+
+      #theme-freetoken .navsubtoggle {
+        width: 34px;
+        height: 34px;
+        margin: -8px -8px -8px 0;
+      }
+
+      #theme-freetoken .navsubtoggle .caret {
+        transition: transform 0.18s ease;
+      }
+
+      #theme-freetoken .navsubtoggle[aria-expanded="true"] .caret {
+        transform: rotate(180deg);
+      }
+
+      #theme-freetoken .navlinks .navmenu a {
+        font-size: 13px;
       }
     }
 

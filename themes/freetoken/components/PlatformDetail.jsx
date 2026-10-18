@@ -113,45 +113,40 @@ export default function PlatformDetail({ platform, posts }) {
           </span>
         </h1>
         {platform.desc && <div className='herosub'>{platform.desc}</div>}
-        <div className='heropills'>
+        <div className='heropills platform-meta'>
           {platform.quota && (
             <span className='hpill dark'>{platform.quota}</span>
           )}
-          {platform.context > 0 && (
-            <span className='hpill'>上下文 {fmtCtx(platform.context)}</span>
-          )}
           <span className='hpill'>{models.length} 个免费模型</span>
+          {platform.url && (
+            <SmartLink
+              href={platform.url}
+              className='pmetabtn'
+              target='_blank'
+              rel='noopener noreferrer'
+            >
+              前往官网
+            </SmartLink>
+          )}
         </div>
-        {(platform.url || platform.baseUrl) && (
+        {platform.baseUrl && (
           <div className='pmeta'>
-            {platform.url && (
-              <SmartLink
-                href={platform.url}
-                className='pmetabtn'
-                target='_blank'
-                rel='noopener noreferrer'
-              >
-                前往官网
-              </SmartLink>
-            )}
-            {platform.baseUrl && (
-              <button
-                type='button'
-                className='pmetaurl'
-                title='点击复制 Base URL'
-                aria-label={`复制 Base URL：${platform.baseUrl}`}
-                onClick={copyBaseUrl}
-              >
-                <span className='pmetaurl-text'>{platform.baseUrl}</span>
-                <span className='pmetaurl-copy'>
-                  {copyStatus === 'copied'
-                    ? '已复制'
-                    : copyStatus === 'failed'
-                      ? '复制失败'
-                      : '复制'}
-                </span>
-              </button>
-            )}
+            <button
+              type='button'
+              className='pmetaurl'
+              title='点击复制 Base URL'
+              aria-label={`复制 Base URL：${platform.baseUrl}`}
+              onClick={copyBaseUrl}
+            >
+              <span className='pmetaurl-text'>{platform.baseUrl}</span>
+              <span className='pmetaurl-copy'>
+                {copyStatus === 'copied'
+                  ? '已复制'
+                  : copyStatus === 'failed'
+                    ? '复制失败'
+                    : '复制'}
+              </span>
+            </button>
           </div>
         )}
       </div>
