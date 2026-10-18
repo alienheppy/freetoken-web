@@ -224,6 +224,22 @@ export function normalizeHttpUrl(v) {
   return /^https?:\/\//i.test(s) ? s : ''
 }
 
+/**
+ * 推广图兼容两种 Notion 写法：纯 URL，或编辑器复制出的 `<img src="...">`。
+ * 仅提取 http(s) src；HTML 中其他内容不会参与渲染。
+ */
+export function normalizePromoImageUrl(v) {
+  const s = toNonEmptyString(v)
+  if (!s) return ''
+
+  if (/^https?:\/\//i.test(s)) return s
+
+  const match = s.match(
+    /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i
+  )
+  return normalizeHttpUrl(match?.[1] || match?.[2] || match?.[3] || '')
+}
+
 /** sourceUrl：仅 http(s)，其余 → '' */
 export function normalizeSourceUrl(v) {
   return normalizeHttpUrl(v)
@@ -351,7 +367,7 @@ export function adaptPost(post) {
     verificationStatus: normalizeVerificationStatus(ext.verificationStatus),
     sourceUrl: normalizeSourceUrl(ext.sourceUrl),
     // 详情页右侧推广位：图片与链接必须同时有效，组件才渲染
-    promoImageUrl: normalizeHttpUrl(toPropText(post['推广图'])),
+    promoImageUrl: normalizePromoImageUrl(post['推广图']),
     promoUrl: normalizeHttpUrl(toPropText(post['推广链接'])),
     promoAlt: toPropText(post['推广标题']),
     promoText: toPropText(post['推广说明']),

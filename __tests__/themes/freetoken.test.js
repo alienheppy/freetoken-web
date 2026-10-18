@@ -1470,10 +1470,10 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
   test('推广图与推广链接仅接受 http(s)，标题和说明保持纯文本', () => {
     const model = adaptPost(
       makePost({
-        '推广图': ' https://files.example.com/promo.jpg ',
-        '推广链接': 'https://zenmux.ai/invite/VNPDR1',
-        '推广标题': ' ZenMux 推广图 ',
-        '推广说明': ' 邀请链接 '
+        推广图: ' https://files.example.com/promo.jpg ',
+        推广链接: 'https://zenmux.ai/invite/VNPDR1',
+        推广标题: ' ZenMux 推广图 ',
+        推广说明: ' 邀请链接 '
       })
     )
     expect(model.promoImageUrl).toBe('https://files.example.com/promo.jpg')
@@ -1483,8 +1483,8 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
 
     const unsafe = adaptPost(
       makePost({
-        '推广图': 'data:image/svg+xml,<svg/>',
-        '推广链接': 'javascript:alert(1)'
+        推广图: 'data:image/svg+xml,<svg/>',
+        推广链接: 'javascript:alert(1)'
       })
     )
     expect(unsafe.promoImageUrl).toBe('')
@@ -1492,14 +1492,33 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
     expect(adaptPost(null).promoImageUrl).toBe('')
   })
 
+  test('推广图兼容 Notion 的 img HTML，仍拒绝非 HTTP(S) src', () => {
+    const html = adaptPost(
+      makePost({
+        推广图:
+          '<img src="https://files.example.com/promo.webp" alt="pasted-image.webp" />',
+        推广链接: 'https://openrouter.ai/'
+      })
+    )
+    expect(html.promoImageUrl).toBe('https://files.example.com/promo.webp')
+
+    const unsafe = adaptPost(
+      makePost({
+        推广图: '<img src="javascript:alert(1)" />',
+        推广链接: 'https://openrouter.ai/'
+      })
+    )
+    expect(unsafe.promoImageUrl).toBe('')
+  })
+
   test('详情页推广位：图片和链接齐全时渲染外链，缺失时保持单栏', () => {
     const promoPost = makePost({
       title: 'Promo Model',
       slug: 'promo-model',
-      '推广图': 'https://files.example.com/promo.jpg',
-      '推广链接': 'https://zenmux.ai/invite/VNPDR1',
-      '推广标题': 'ZenMux 邀请',
-      '推广说明': '点击前往邀请页面'
+      推广图: 'https://files.example.com/promo.jpg',
+      推广链接: 'https://zenmux.ai/invite/VNPDR1',
+      推广标题: 'ZenMux 邀请',
+      推广说明: '点击前往邀请页面'
     })
     const { rerender } = render(<LayoutSlug post={promoPost} />)
     const hero = screen.getByTestId('ft-detail-hero')
@@ -1515,17 +1534,14 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
       'src',
       'https://files.example.com/promo.jpg'
     )
-    expect(within(promo).getByRole('img')).toHaveAttribute(
-      'alt',
-      'ZenMux 邀请'
-    )
+    expect(within(promo).getByRole('img')).toHaveAttribute('alt', 'ZenMux 邀请')
 
     rerender(
       <LayoutSlug
         post={makePost({
           title: 'No Promo',
           slug: 'no-promo',
-          '推广图': 'https://files.example.com/promo.jpg'
+          推广图: 'https://files.example.com/promo.jpg'
         })}
       />
     )
