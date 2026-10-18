@@ -1193,6 +1193,77 @@ const Style = () => (
       text-align: left;
     }
 
+    /* 详情页推广位：仅在 Notion 同时配置推广图与推广链接时启用两栏 */
+    #theme-freetoken .detail .hero.has-promo .hero-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 334px;
+      gap: 48px;
+      align-items: start;
+    }
+
+    #theme-freetoken .hero-promo {
+      position: relative;
+      display: block;
+      width: 100%;
+      aspect-ratio: 334 / 152;
+      overflow: hidden;
+      border: 1px solid var(--hairline);
+      border-radius: 18px;
+      background: var(--bg-alt);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      transition:
+        transform 0.22s ease,
+        box-shadow 0.22s ease;
+    }
+
+    #theme-freetoken .hero-promo img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.35s ease;
+    }
+
+    #theme-freetoken .hero-promo::after {
+      content: "前往官网 ↗";
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      padding: 6px 11px;
+      border-radius: 980px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.62);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      font-size: 11px;
+      font-weight: 600;
+      opacity: 0;
+      transform: translateY(4px);
+      transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    #theme-freetoken .hero-promo:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    #theme-freetoken .hero-promo:hover img {
+      transform: scale(1.025);
+    }
+
+    #theme-freetoken .hero-promo:hover::after,
+    #theme-freetoken .hero-promo:focus-visible::after {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #theme-freetoken .hero-promo:focus-visible {
+      outline: 3px solid rgba(0, 113, 227, 0.38);
+      outline-offset: 4px;
+    }
+
     #theme-freetoken .detail .eyebrow {
       font-size: 15px;
       font-weight: 600;
@@ -1798,6 +1869,13 @@ const Style = () => (
       }
       #theme-freetoken .detail :where(h1:not(#article-wrapper h1)) {
         font-size: 40px;
+      }
+      #theme-freetoken .detail .hero.has-promo .hero-main {
+        grid-template-columns: 1fr;
+        gap: 28px;
+      }
+      #theme-freetoken .hero-promo {
+        max-width: 334px;
       }
     }
 

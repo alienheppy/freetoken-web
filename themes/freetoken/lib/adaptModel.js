@@ -11,6 +11,7 @@
  *   - platforms：数组或逗号/顿号分隔字符串 → 去空去重（保持出现顺序）
  *   - context：有限正数，否则 0
  *   - sourceUrl：仅 http(s) 链接，否则 ''
+ *   - promoImageUrl / promoUrl：仅 http(s) 链接，否则 ''
  *   - href：保留官方 post.href 原值，不自行 slugify
  *
  * 只适配一次：adaptPost 用 WeakMap 记忆化（同一 post 对象只解析一次），
@@ -217,10 +218,15 @@ export function normalizeVerificationStatus(v) {
   return VERIFICATION_STATUSES.includes(s) ? s : 'pending'
 }
 
-/** sourceUrl：仅 http(s)，其余 → '' */
-export function normalizeSourceUrl(v) {
+/** HTTP(S) URL：仅绝对地址，其余（含 javascript/data/相对路径）→ '' */
+export function normalizeHttpUrl(v) {
   const s = toNonEmptyString(v)
   return /^https?:\/\//i.test(s) ? s : ''
+}
+
+/** sourceUrl：仅 http(s)，其余 → '' */
+export function normalizeSourceUrl(v) {
+  return normalizeHttpUrl(v)
 }
 
 /**
@@ -268,6 +274,10 @@ function emptyModel() {
     expiresHint: '',
     verificationStatus: 'pending',
     sourceUrl: '',
+    promoImageUrl: '',
+    promoUrl: '',
+    promoAlt: '',
+    promoText: '',
     href: '',
     pageIcon: ''
   }
@@ -340,6 +350,11 @@ export function adaptPost(post) {
     expiresHint: isValidDateStr(ext.expiresHint) ? ext.expiresHint : '',
     verificationStatus: normalizeVerificationStatus(ext.verificationStatus),
     sourceUrl: normalizeSourceUrl(ext.sourceUrl),
+    // 详情页右侧推广位：图片与链接必须同时有效，组件才渲染
+    promoImageUrl: normalizeHttpUrl(toPropText(post['推广图'])),
+    promoUrl: normalizeHttpUrl(toPropText(post['推广链接'])),
+    promoAlt: toPropText(post['推广标题']),
+    promoText: toPropText(post['推广说明']),
     // 保留官方 href（不重新 slugify），无值时由组件回退 '/'
     href: toNonEmptyString(post.href),
     pageIcon: toNonEmptyString(post.pageIcon) || toNonEmptyString(post.icon)

@@ -1467,6 +1467,71 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
     ).toBe('')
   })
 
+  test('推广图与推广链接仅接受 http(s)，标题和说明保持纯文本', () => {
+    const model = adaptPost(
+      makePost({
+        '推广图': ' https://files.example.com/promo.jpg ',
+        '推广链接': 'https://zenmux.ai/invite/VNPDR1',
+        '推广标题': ' ZenMux 推广图 ',
+        '推广说明': ' 邀请链接 '
+      })
+    )
+    expect(model.promoImageUrl).toBe('https://files.example.com/promo.jpg')
+    expect(model.promoUrl).toBe('https://zenmux.ai/invite/VNPDR1')
+    expect(model.promoAlt).toBe('ZenMux 推广图')
+    expect(model.promoText).toBe('邀请链接')
+
+    const unsafe = adaptPost(
+      makePost({
+        '推广图': 'data:image/svg+xml,<svg/>',
+        '推广链接': 'javascript:alert(1)'
+      })
+    )
+    expect(unsafe.promoImageUrl).toBe('')
+    expect(unsafe.promoUrl).toBe('')
+    expect(adaptPost(null).promoImageUrl).toBe('')
+  })
+
+  test('详情页推广位：图片和链接齐全时渲染外链，缺失时保持单栏', () => {
+    const promoPost = makePost({
+      title: 'Promo Model',
+      slug: 'promo-model',
+      '推广图': 'https://files.example.com/promo.jpg',
+      '推广链接': 'https://zenmux.ai/invite/VNPDR1',
+      '推广标题': 'ZenMux 邀请',
+      '推广说明': '点击前往邀请页面'
+    })
+    const { rerender } = render(<LayoutSlug post={promoPost} />)
+    const hero = screen.getByTestId('ft-detail-hero')
+    expect(hero).toHaveClass('has-promo')
+
+    const promo = screen.getByTestId('ft-hero-promo')
+    expect(promo).toHaveAttribute('href', 'https://zenmux.ai/invite/VNPDR1')
+    expect(promo).toHaveAttribute('target', '_blank')
+    expect(promo).toHaveAttribute('rel', 'noopener noreferrer sponsored')
+    expect(promo).toHaveAttribute('title', '点击前往邀请页面')
+    expect(within(promo).getByRole('img')).toHaveAttribute(
+      'src',
+      'https://files.example.com/promo.jpg'
+    )
+    expect(within(promo).getByRole('img')).toHaveAttribute(
+      'alt',
+      'ZenMux 邀请'
+    )
+
+    rerender(
+      <LayoutSlug
+        post={makePost({
+          title: 'No Promo',
+          slug: 'no-promo',
+          '推广图': 'https://files.example.com/promo.jpg'
+        })}
+      />
+    )
+    expect(screen.getByTestId('ft-detail-hero')).not.toHaveClass('has-promo')
+    expect(screen.queryByTestId('ft-hero-promo')).toBeNull()
+  })
+
   test('href 保留官方 post.href 原值，名称/日期等字段严格校验', () => {
     const model = adaptPost(
       makePost({
