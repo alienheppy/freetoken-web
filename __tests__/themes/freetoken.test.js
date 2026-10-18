@@ -598,7 +598,7 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(screen.queryByTestId('ft-pager')).toBeNull()
   })
 
-  test('模型库翻页：首末页常驻 + 可点「…」跳 3 页 + 总页数提示（页数多时也能一键到两端）', () => {
+  test('模型库翻页：只保留前后箭头和可输入页码框', () => {
     // 90 个模型 / 每页 9 → 10 页。
     const makeModels = n =>
       Array.from({ length: n }, (_, i) => ({
@@ -609,44 +609,31 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       }))
 
     const many = makeModels(90) // 10 页
-    const { container } = render(
+    render(
       <ModelToolbar models={adaptPosts(many)} today='2026-10-15' />
     )
     const pager = screen.getByTestId('ft-pager')
-    const pageNums = () =>
-      Array.from(container.querySelectorAll('.pager .pgbtn'))
-        .map(b => b.textContent)
-        .filter(t => /^\d+$/.test(t))
+    expect(pager.querySelectorAll('.pgbtn')).toHaveLength(2)
+    expect(pager.querySelector('.pggap')).toBeNull()
+    expect(screen.getByTestId('ft-pager-input')).toHaveValue(1)
+    expect(screen.getByTestId('ft-pager-count').textContent).toBe('共 10 页')
 
-    // 第 1 页：首页 + 后续页码 + 末页常驻
-    expect(pageNums()).toEqual(['1', '2', '3', '4', '10'])
-    expect(screen.getByTestId('ft-pager-count').textContent).toBe('1/10')
-    expect(
-      within(pager).getByRole('button', { name: '10' })
-    ).toBeInTheDocument()
+    // 输入指定页并回车，可直接跳转
+    fireEvent.change(screen.getByTestId('ft-pager-input'), {
+      target: { value: '6' }
+    })
+    fireEvent.submit(screen.getByTestId('ft-pager-input').closest('form'))
+    expect(screen.getByTestId('ft-pager-input')).toHaveValue(6)
 
-    // 末页常驻 → 一键直达末页，不必连点 9 次
-    fireEvent.click(within(pager).getByRole('button', { name: '10' }))
-    expect(screen.getByTestId('ft-pager-count').textContent).toBe('10/10')
-    expect(within(pager).getByRole('button', { name: '10' })).toHaveAttribute(
-      'aria-current',
-      'page'
-    )
-    expect(pageNums()).toEqual(['1', '7', '8', '9', '10'])
-
-    // 回到第 1 页，用「…」一次跳 3 页（步长克制，不丢失方向感）
-    fireEvent.click(within(pager).getByRole('button', { name: '1' }))
-    expect(screen.getByTestId('ft-pager-count').textContent).toBe('1/10')
-    fireEvent.click(within(pager).getByRole('button', { name: '向后 3 页' }))
-    expect(screen.getByTestId('ft-pager-count').textContent).toBe('4/10')
-
-    // 末页的「…」往回跳 3 页
-    fireEvent.click(within(pager).getByRole('button', { name: '10' }))
-    fireEvent.click(within(pager).getByRole('button', { name: '向前 3 页' }))
-    expect(screen.getByTestId('ft-pager-count').textContent).toBe('7/10')
+    // 出界时恢复当前页，不派发无效跳转
+    fireEvent.change(screen.getByTestId('ft-pager-input'), {
+      target: { value: '99' }
+    })
+    fireEvent.submit(screen.getByTestId('ft-pager-input').closest('form'))
+    expect(screen.getByTestId('ft-pager-input')).toHaveValue(6)
   })
 
-  test('模型库翻页：页数不多（<= 5）时不折叠，全部页码直接列出', () => {
+  test('模型库翻页：页数较少时仍保持精简三控件', () => {
     // 45 个模型 / 每页 9 → 5 页
     const models = Array.from({ length: 45 }, (_, i) => ({
       id: `m${i}`,
@@ -654,14 +641,13 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       href: `/model-${i}`,
       ext: { platforms: ['P1'] }
     }))
-    const { container } = render(
+    render(
       <ModelToolbar models={adaptPosts(models)} today='2026-10-15' />
     )
-    const nums = Array.from(container.querySelectorAll('.pager .pgbtn'))
-      .map(b => b.textContent)
-      .filter(t => /^\d+$/.test(t))
-    expect(nums).toEqual(['1', '2', '3', '4', '5'])
-    expect(container.querySelector('.pager .pggap')).toBeNull()
+    const pager = screen.getByTestId('ft-pager')
+    expect(pager.querySelectorAll('.pgbtn')).toHaveLength(2)
+    expect(pager.querySelector('.pggap')).toBeNull()
+    expect(screen.getByTestId('ft-pager-count').textContent).toBe('共 5 页')
   })
 
   test('首页无数据时使用原设计空态样式', () => {
@@ -704,7 +690,7 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(screen.getAllByTestId('ft-platform')).toHaveLength(3)
   })
 
-  test('平台一览翻页：与模型库同一套折叠逻辑（7 页时首末常驻 + 可点「…」跳 3 页）', () => {
+  test('平台一览翻页：与模型库同一套三控件精简逻辑', () => {
     // 63 个平台 / 每页 9 → 7 页
     const models = Array.from({ length: 63 }, (_, i) => ({
       id: `m${i}`,
@@ -714,23 +700,20 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     }))
     render(<LayoutIndex posts={models} />)
     const pager = screen.getByTestId('ft-platform-pager')
-    const nums = () =>
-      Array.from(pager.querySelectorAll('.pgbtn'))
-        .map(b => b.textContent)
-        .filter(t => /^\d+$/.test(t))
+    expect(pager.querySelectorAll('.pgbtn')).toHaveLength(2)
+    expect(pager.querySelector('.pggap')).toBeNull()
+    expect(within(pager).getByTestId('ft-pager-input')).toHaveValue(1)
+    expect(within(pager).getByTestId('ft-pager-count').textContent).toBe(
+      '共 7 页'
+    )
 
-    expect(nums()).toEqual(['1', '2', '3', '4', '7'])
-    expect(within(pager).getByTestId('ft-pager-count').textContent).toBe('1/7')
-    expect(pager.querySelectorAll('.pggap')).toHaveLength(1)
-
-    // 与模型库一致：末页常驻，可一键到末页
-    fireEvent.click(within(pager).getByRole('button', { name: '7' }))
-    expect(within(pager).getByTestId('ft-pager-count').textContent).toBe('7/7')
-
-    // 回到第 1 页后，用「…」一次跳 3 页
-    fireEvent.click(within(pager).getByRole('button', { name: '1' }))
-    fireEvent.click(within(pager).getByRole('button', { name: '向后 3 页' }))
-    expect(within(pager).getByTestId('ft-pager-count').textContent).toBe('4/7')
+    fireEvent.change(within(pager).getByTestId('ft-pager-input'), {
+      target: { value: '7' }
+    })
+    fireEvent.submit(
+      within(pager).getByTestId('ft-pager-input').closest('form')
+    )
+    expect(within(pager).getByTestId('ft-pager-input')).toHaveValue(7)
   })
 
   test('平台卡片整卡可点进入平台详情页，且「前往官网」为独立外链', () => {
@@ -1239,6 +1222,20 @@ describe('themes/freetoken 菜单与可访问性', () => {
     expect(screen.getAllByText('模型库').length).toBeGreaterThan(0)
     expect(screen.getAllByText('平台').length).toBeGreaterThan(0)
     expect(screen.queryByText('暂不显示')).toBeNull()
+  })
+
+  test('未配置英文站时隐藏 English 菜单项', () => {
+    render(
+      <LayoutBase
+        customMenu={[
+          { title: '模型库', href: '/#models', show: true },
+          { title: 'English', href: '/en', show: true }
+        ]}
+        siteInfo={{ title: 'Hub' }}
+      />
+    )
+    expect(screen.queryByText('English')).toBeNull()
+    expect(screen.getByText('模型库')).toBeInTheDocument()
   })
 
   test('customMenu 的 SubMenu 以同样式的下拉渲染', () => {

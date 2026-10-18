@@ -710,7 +710,7 @@ const Style = () => (
       grid-column: 1 / -1;
     }
 
-    /* 模型库翻页：右对齐（与上方卡片网格右缘齐平），克制的药丸页码 */
+    /* 模型库翻页：右对齐（与上方卡片网格右缘齐平） */
     #theme-freetoken .pager {
       display: flex;
       align-items: center;
@@ -720,45 +720,83 @@ const Style = () => (
       margin-top: 30px;
     }
 
-    /* 药丸按钮（非圆形）：定高、左右留白撑成胶囊；上下箭头与页码同款，
-       槽位宽度一致，翻页时整行宽度不变、左右箭头不抖动。 */
+    /* 页码使用圆形按钮；翻页箭头另加浅灰底，贴近 Apple 的克制控件 */
     #theme-freetoken .pgbtn {
-      min-width: 40px;
+      width: 38px;
       height: 38px;
-      padding: 0 14px;
-      border-radius: 980px;
+      padding: 0;
+      border-radius: 50%;
       border: 1px solid var(--hairline);
       background: var(--bg);
       color: var(--txt);
       font-size: 14px;
+      line-height: 1;
       cursor: pointer;
       transition: 0.2s;
     }
 
-    /* 上一页 / 下一页：沿用基础药丸样式（浅底 + 细边框），悬停时描边转黑 */
+    /* 上一页 / 下一页：浅灰圆形底 + 深灰箭头 */
     #theme-freetoken .pgbtn:first-child,
     #theme-freetoken .pgbtn[aria-label='下一页'] {
-      padding: 0 18px;
-      font-size: 16px;
-      line-height: 1;
-    }
-
-    /* 折叠位「…」：可点，一次跳 5 页（比不可点的省略号更有用） */
-    #theme-freetoken .pgbtn.pggap {
-      color: var(--faint);
-      letter-spacing: 0.08em;
-      background: transparent;
+      display: inline-grid;
+      place-items: center;
       border-color: transparent;
+      background: var(--bg-alt);
+      color: #666666;
     }
 
-    /* 悬停只提亮文字，描边沿用下方通用规则（与其他页码一致转黑） */
-    #theme-freetoken .pgbtn.pggap:hover:not(:disabled) {
+    /* 用纯 CSS 折线绘制箭头，避免不同字体下 ‹ › 粗细和位置漂移 */
+    #theme-freetoken .pgchev {
+      display: block;
+      width: 9px;
+      height: 9px;
+      border-top: 2.5px solid currentColor;
+      border-left: 2.5px solid currentColor;
+      transform: rotate(-45deg) translate(1px, 1px);
+    }
+
+    #theme-freetoken .pgbtn[aria-label='下一页'] .pgchev {
+      transform: rotate(135deg) translate(1px, 1px);
+    }
+
+    /* 跳页输入：三个圆框中的中间项；右侧仅作总页数提示 */
+    #theme-freetoken .pgjump {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    #theme-freetoken .pginput {
+      box-sizing: border-box;
+      width: 42px;
+      height: 38px;
+      padding: 0 5px;
+      border: 1px solid var(--hairline);
+      border-radius: 50%;
+      outline: none;
+      background: var(--bg);
       color: var(--txt);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      transition: 0.2s;
+      appearance: textfield;
     }
 
-    /* 总页数提示：规模一眼可见（模型库 12 页 / 平台 7 页） */
+    #theme-freetoken .pginput::-webkit-inner-spin-button,
+    #theme-freetoken .pginput::-webkit-outer-spin-button {
+      margin: 0;
+      appearance: none;
+    }
+
+    #theme-freetoken .pginput:focus {
+      border-color: var(--txt);
+      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06);
+    }
+
     #theme-freetoken .pgcount {
-      margin-left: 6px;
+      min-width: 42px;
       font-size: 13px;
       color: var(--faint);
       white-space: nowrap;
