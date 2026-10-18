@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 
 import SmartLink from '@/components/SmartLink'
+import CONFIG from '../config'
 
 /**
  * 顶部导航（原设计 layout.jsx 的 nav > .navin > .logo + .navlinks）
@@ -12,15 +13,36 @@ import SmartLink from '@/components/SmartLink'
 const linkLabel = link => link?.title || link?.name || ''
 const linkKey = link => link?.href || linkLabel(link)
 
+const isEnglishMenuLink = link => {
+  if (!CONFIG.FREETOKEN_HIDE_ENGLISH_MENU) return false
+  if (linkLabel(link).trim().toLowerCase() === 'english') return true
+
+  const href = typeof link?.href === 'string' ? link.href.trim() : ''
+  if (!href) return false
+
+  const pathname = href
+    .replace(/^https?:\/\/[^/]+/i, '')
+    .split(/[?#]/)[0]
+  return /(?:^|\/)en\/?$/i.test(pathname)
+}
+
 /** 仅隐藏显式 show === false 的项；未标注 show 的一律显示（customNav 老数据兼容） */
 const visibleItems = menu =>
   (Array.isArray(menu) ? menu : []).filter(
-    link => link && link.show !== false && (link.href || linkLabel(link))
+    link =>
+      link &&
+      link.show !== false &&
+      !isEnglishMenuLink(link) &&
+      (link.href || linkLabel(link))
   )
 
 const subItems = link =>
   (Array.isArray(link?.subMenus) ? link.subMenus : []).filter(
-    sub => sub && sub.show !== false && (sub.href || linkLabel(sub))
+    sub =>
+      sub &&
+      sub.show !== false &&
+      !isEnglishMenuLink(sub) &&
+      (sub.href || linkLabel(sub))
   )
 
 export default function NavMenu({ logoText, siteInfo, menu, linkHref }) {

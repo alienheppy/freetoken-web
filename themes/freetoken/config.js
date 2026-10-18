@@ -95,6 +95,9 @@ const CONFIG = {
   // 平台一览每页条数（3 列 × 3 行）；平台数随收录增长，与模型库一致分页
   FREETOKEN_PLATFORMS_PER_PAGE: 9,
 
+  // 英文 Notion 数据源尚未配置时，保留 Notion 菜单项但隐藏无效的 /en 入口
+  FREETOKEN_HIDE_ENGLISH_MENU: true,
+
   // 导航回退菜单（Notion 未配置 Menu/SubMenu 时使用，取原设计三链接）
   FREETOKEN_FALLBACK_MENU: [
     { title: '模型库', href: '/#models', show: true },
