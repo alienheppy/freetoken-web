@@ -10,6 +10,8 @@ import Footer from './Footer'
 import LoadingIndicator from './LoadingIndicator'
 import NavMenu from './NavMenu'
 
+const linkLabel = link => link?.title || link?.name || ''
+
 /**
  * 基础布局：原设计 layout.jsx 的 DOM 顺序（nav → children → BackToTop → footer）
  * 无左侧边栏；菜单优先级：Notion customMenu → customNav → 内置回退（原设计三链接）
@@ -31,6 +33,11 @@ export default function LayoutBase(props) {
         ? customNav
         : CONFIG.FREETOKEN_FALLBACK_MENU
 
+  const friendLinks = menu.find(
+    link =>
+      link?.show !== false &&
+      linkLabel(link).trim().toLowerCase() === '友情链接'
+  )
   const logoText = siteConfig('FREETOKEN_LOGO_TEXT', null, CONFIG)
   const latestVerified = latestVerifiedAt(adaptPosts(allNavPages))
 
@@ -46,7 +53,11 @@ export default function LayoutBase(props) {
       />
       {children}
       <BackToTop />
-      <Footer siteInfo={siteInfo} latestVerifiedAt={latestVerified} />
+      <Footer
+        siteInfo={siteInfo}
+        latestVerifiedAt={latestVerified}
+        friendLinks={friendLinks}
+      />
     </div>
   )
 }

@@ -1227,8 +1227,21 @@ const Style = () => (
       margin: 14px 0;
     }
 
-    #theme-freetoken .footin a {
-      color: var(--blue);
+    #theme-freetoken .footmeta {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    #theme-freetoken .footlink {
+      white-space: nowrap;
+    }
+
+    #theme-freetoken .footmeta a {
+      color: var(--txt);
+      font-weight: 600;
     }
 
     /* ---------- detail page (scoped) ---------- */

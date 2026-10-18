@@ -26,6 +26,9 @@ const isEnglishMenuLink = link => {
   return /(?:^|\/)en\/?$/i.test(pathname)
 }
 
+const isFriendLinksMenu = link =>
+  linkLabel(link).trim().toLowerCase() === '友情链接'
+
 /** 仅隐藏显式 show === false 的项；未标注 show 的一律显示（customNav 老数据兼容） */
 const visibleItems = menu =>
   (Array.isArray(menu) ? menu : []).filter(
@@ -33,6 +36,7 @@ const visibleItems = menu =>
       link &&
       link.show !== false &&
       !isEnglishMenuLink(link) &&
+      !isFriendLinksMenu(link) &&
       (link.href || linkLabel(link))
   )
 

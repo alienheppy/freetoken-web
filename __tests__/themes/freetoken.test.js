@@ -214,6 +214,30 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
+  test('「友情链接」从顶部导航移到页脚右侧，并保留 Notion 配置地址', () => {
+    const { container } = render(
+      <LayoutBase
+        customMenu={[
+          { title: '模型库', href: '/#models', show: true },
+          { title: '友情链接', href: '/links', show: true }
+        ]}
+        siteInfo={{ title: 'Hub' }}>
+        <div />
+      </LayoutBase>
+    )
+
+    const navLinks = screen.getByTestId('ft-navlinks')
+    expect(within(navLinks).queryByText('友情链接')).toBeNull()
+
+    const footer = container.querySelector('footer')
+    const friendLink = within(footer).getByRole('link', {
+      name: '友情链接'
+    })
+    expect(friendLink).toHaveAttribute('href', '/links')
+    expect(friendLink).toHaveClass('footlink')
+    expect(friendLink.parentElement).toHaveClass('footmeta')
+  })
+
   test('顶部导航为原设计结构：nav > .navin > logo + .navlinks 三链接', () => {
     const { container } = render(
       <LayoutBase siteInfo={{ title: 'Hub' }}>
