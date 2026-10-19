@@ -889,6 +889,19 @@ const Style = () => (
       gap: 8px;
     }
 
+    /* 平台名可能很长（例如「Cloudflare Workers AI」）：让名称自己换行，
+       徽标始终按内容占固定宽度，不被挤压成竖排。 */
+    #theme-freetoken .pcard h3 .pname {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    #theme-freetoken .pcard h3 .badge {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
     #theme-freetoken .pcard p {
       font-size: 14px;
       color: var(--sub);
@@ -933,13 +946,10 @@ const Style = () => (
       color: #6cb2ff;
     }
 
-    #theme-freetoken .pcount {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--txt);
+    /* 平台卡片底栏：与模型卡 .ctxrow 同一套结构（左说明 / 右数字）与排版，
+       这里只补平台卡片需要的上间距（模型卡靠 flex gap 提供）。 */
+    #theme-freetoken .pcard .ctxrow {
       margin-top: 14px;
-      border-top: 1px solid var(--hairline);
-      padding-top: 12px;
     }
 
     #theme-freetoken .provbar {

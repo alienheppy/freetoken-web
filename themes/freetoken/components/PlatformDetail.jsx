@@ -80,6 +80,12 @@ export default function PlatformDetail({ platform, posts }) {
   const certified =
     Array.isArray(platform.certifications) && platform.certifications.length > 0
 
+  // 「报告过期」入口与模型详情页同源（FREETOKEN_REPORT_URL + 预填标题），
+  // 只是对象从模型名换成平台名，便于后台按平台定位是哪条档案有问题。
+  const reportHref = `${siteConfig('FREETOKEN_REPORT_URL', null, CONFIG)}${encodeURIComponent(
+    `过期报告：${platform.name}`
+  )}`
+
   const showCopyStatus = next => {
     clearTimeout(copyTimerRef.current)
     setCopyStatus(next)
@@ -236,6 +242,14 @@ export default function PlatformDetail({ platform, posts }) {
               {siteConfig('FREETOKEN_PLATFORM_EMPTY', null, CONFIG)}
             </div>
           )}
+        </div>
+
+        {/* 与模型详情页保持同一条反馈行：用户在这里同样需要「发现不对 → 一键报告」的入口。
+            核实日期来自平台档案的核实字段，未填时显示「待核实」（与模型页同口径）。 */}
+        <div className='reportline' data-testid='ft-platform-report'>
+          信息有误或额度已变化？
+          <SmartLink href={reportHref}>报告过期</SmartLink> {' · '}核实日期{' '}
+          {platform.verifiedAt || '待核实'}
         </div>
       </section>
 

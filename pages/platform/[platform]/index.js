@@ -79,7 +79,9 @@ export async function getStaticProps({ params: { platform }, locale }) {
     quota: profile.quota,
     guide: profile.guide,
     context: profile.context,
-    certifications: profile.certifications
+    certifications: profile.certifications,
+    // 平台详情页反馈行的「核实日期」；Notion 未填时为空串，主题侧显示「待核实」
+    verifiedAt: profile.verifiedAt || ''
   }
   props.posts = cleanPostSummaries(posts)
   delete props.allPages

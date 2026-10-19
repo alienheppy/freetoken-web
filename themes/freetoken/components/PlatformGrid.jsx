@@ -71,7 +71,12 @@ export default function PlatformGrid({ models, platformProfiles, stats }) {
             {platform.certified && platform.verifiedAt && (
               <div className='lim'>{`核实于 ${platform.verifiedAt}`}</div>
             )}
-            <div className='pcount'>{platform.count} 个模型</div>
+            {/* 底栏与模型卡 .ctxrow 同构：左边说明文字，右边数字。
+                原文案「N 个模型」把标签和数字写在一起，视觉上不成对齐的一行。 */}
+            <div className='ctxrow'>
+              <span>免费模型提供</span>
+              <b>{platform.count}</b>
+            </div>
           </div>
         ))}
       </div>

@@ -196,6 +196,17 @@ export function resolveContext(post, ext) {
   return toFinitePositiveNumber(ext.context)
 }
 
+/**
+ * 最大输出长度归一化（统一输出 tokens 数），口径与「上下文」一致：
+ * 主库「最大输出长度」按 K 数理解（< 4096 时 ×1024），完整 token 数按原值；
+ * 主库缺失时回退 ext.maxOutput（tokens 原值）。
+ */
+export function resolveMaxOutput(post, ext) {
+  const raw = toPositiveNumberFromProp(post['最大输出长度'])
+  if (raw > 0) return raw < 4096 ? raw * 1024 : raw
+  return toFinitePositiveNumber(ext.maxOutput)
+}
+
 /** platforms：数组或逗号/顿号分隔字符串 → 去空去重数组（保持出现顺序） */
 export function toPlatformArray(v) {
   const list = Array.isArray(v)
@@ -277,6 +288,7 @@ function emptyModel() {
     provider: '',
     platforms: [],
     context: 0,
+    maxOutput: 0,
     capabilities: { vision: false, tools: false, reasoning: false },
     vision: false,
     tools: false,
@@ -351,6 +363,8 @@ export function adaptPost(post) {
     platforms: toPlatformArray(ext.platforms),
     // 上下文窗口：主库「上下文」为 K 数语义（×1024 归一为 tokens）> post.context > ext.context
     context: resolveContext(post, ext),
+    // 最大输出长度：与上下文同口径（主库属性 > ext.maxOutput）
+    maxOutput: resolveMaxOutput(post, ext),
     capabilities,
     // 派生别名：卡片/筛选直接消费，避免到处写 capabilities.xxx
     vision: capabilities.vision,

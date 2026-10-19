@@ -1,11 +1,11 @@
 'use client'
 
-import { fmtCtx, normalizePricingLabel, pricingStatus } from '../lib/adaptModel'
+import { fmtCtx, pricingStatus } from '../lib/adaptModel'
 import { BIG_CONTEXT } from '../lib/modelView'
 
 /**
  * 详情页「模型特性」区块（原设计 .facts + .featlist）
- * facts 六格：上下文窗口 / 输入模态 / 输出模态 / 工具调用 / 深度推理 / 定价
+ * facts 六格：上下文窗口 / 输入模态 / 输出模态 / 工具调用 / 深度推理 / 最大输出长度
  */
 function Fact({ k, v }) {
   return (
@@ -32,6 +32,8 @@ export default function ModelDetailFacts({ model }) {
     Array.isArray(model.platforms) && model.platforms.length > 0
   const canMentionChannelQuota =
     hasChannels && pricingStatus(model.pricing) !== 'paid'
+  const maxOutputLabel =
+    model.maxOutput > 0 ? fmtCtx(model.maxOutput) + ' tokens' : '未标注'
 
   return (
     <>
@@ -41,7 +43,7 @@ export default function ModelDetailFacts({ model }) {
         <Fact k='输出模态' v={model.outputModality} />
         <Fact k='工具调用' v={model.tools ? '支持' : '不支持'} />
         <Fact k='深度推理' v={model.reasoning ? '支持' : '—'} />
-        <Fact k='定价' v={normalizePricingLabel(model.pricing)} />
+        <Fact k='最大输出长度' v={maxOutputLabel} />
       </div>
       <div className='featlist' data-testid='ft-featlist'>
         {model.context >= BIG_CONTEXT && (

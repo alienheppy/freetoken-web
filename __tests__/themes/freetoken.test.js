@@ -68,6 +68,7 @@ import {
   normalizePricingLabel,
   platformSummary,
   pricingStatus,
+  resolveMaxOutput,
   statsFromModels,
   toDateStr,
   UNKNOWN_PRICING_LABEL,
@@ -393,13 +394,15 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       .getByText('Apinex')
       .closest('[data-testid="ft-platform"]')
     // 截断后的 posts 只有 1 条 OpenRouter；全量口径 9 必须覆盖模型派生值
-    expect(apinex.querySelector('.pcount').textContent).toBe('9 个模型')
+    // 底栏与模型卡 .ctxrow 同构：左说明 / 右数字
+    expect(apinex.querySelector('.ctxrow span').textContent).toBe('免费模型提供')
+    expect(apinex.querySelector('.ctxrow b').textContent).toBe('9')
     expect(
       within(screen.getByTestId('ft-platforms'))
         .getByText('OpenRouter')
         .closest('[data-testid="ft-platform"]')
-        .querySelector('.pcount').textContent
-    ).toBe('9 个模型')
+        .querySelector('.ctxrow b').textContent
+    ).toBe('9')
 
     // 未下发 stats 时回退按 models 现算（行为与旧版一致，不引入破坏性变化）
     unmount()
@@ -818,6 +821,19 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
         /base_url 填 https:\/\/openrouter\.ai\/api\/v1/
       )
     ).toBeInTheDocument()
+
+    // 反馈行：与模型详情页同一条「报告过期 / 核实日期」，对象换成平台名
+    const report = within(root).getByTestId('ft-platform-report')
+    expect(report.textContent).toContain('信息有误或额度已变化？')
+    const reportLink = within(report).getByText('报告过期')
+    expect(reportLink.closest('a').getAttribute('href')).toContain(
+      'https://github.com/FreeTokenHub/FreeTokenHub/issues/new?template=expired.md&title='
+    )
+    expect(reportLink.closest('a').getAttribute('href')).toContain(
+      encodeURIComponent('过期报告：OpenRouter')
+    )
+    // 平台档案未填核实日期时回落「待核实」（与模型页同口径）
+    expect(report.textContent).toMatch(/核实日期\s*待核实/)
     // Base URL 一键复制：可点按钮，含「复制」提示
     const copyBtn = within(root).getByRole('button', { name: /复制 Base URL/ })
     expect(copyBtn.querySelector('.pmetaurl-text').textContent).toBe(
@@ -1016,6 +1032,7 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(within(facts).getByText('128K tokens')).toBeInTheDocument()
     expect(within(facts).getAllByText('文本')).toHaveLength(2) // 输入模态 + 输出模态
     expect(within(facts).getAllByText('支持')).toHaveLength(2) // 工具调用 + 深度推理
+    expect(within(facts).getByText('最大输出长度')).toBeInTheDocument()
     expect(within(facts).getByText('未标注')).toBeInTheDocument()
     const featlist = screen.getByTestId('ft-featlist')
     expect(within(featlist).getByText('长上下文')).toBeInTheDocument()
@@ -1102,7 +1119,9 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
 
     const hero = screen.getByTestId('ft-detail-hero')
     expect(within(hero).getByText('付费')).toBeInTheDocument()
-    expect(screen.getByTestId('ft-facts')).toHaveTextContent('付费')
+    // 「模型特性」不再展示定价，保住定价信息只在头部 pill
+    expect(screen.getByTestId('ft-facts')).not.toHaveTextContent('付费')
+    expect(screen.getByTestId('ft-facts')).toHaveTextContent('最大输出长度')
     expect(screen.queryByText('免费 ¥0')).toBeNull()
     expect(screen.queryByText('零成本')).toBeNull()
     expect(screen.queryByText('渠道免费额度')).toBeNull()
@@ -1778,6 +1797,29 @@ describe('themes/freetoken lib/adaptModel 严格解析', () => {
     expect(
       adaptPost(makePost({ 上下文: 0, ext: { context: 8192 } })).context
     ).toBe(8192)
+  })
+
+  test('主库「最大输出长度」与上下文同口径；缺失回退 ext.maxOutput', () => {
+    // K 语义（< 4096）
+    expect(adaptPost(makePost({ 最大输出长度: 8, ext: {} })).maxOutput).toBe(
+      8192
+    )
+    // 完整 token 数（>= 4096）按原值
+    expect(
+      adaptPost(makePost({ 最大输出长度: 16384, ext: {} })).maxOutput
+    ).toBe(16384)
+    // 数字字符串（官方 getPageProperties 形状）
+    expect(adaptPost(makePost({ 最大输出长度: '32', ext: {} })).maxOutput).toBe(
+      32768
+    )
+    // 主库缺失 / 非法值 → ext.maxOutput
+    expect(resolveMaxOutput({}, { maxOutput: 4096 })).toBe(4096)
+    expect(resolveMaxOutput({ 最大输出长度: 0 }, { maxOutput: 4096 })).toBe(
+      4096
+    )
+    expect(resolveMaxOutput({ 最大输出长度: 'abc' }, {})).toBe(0)
+    // 模型对象始终带该字段，未填为 0（组件据此显示“未标注”）
+    expect(adaptPost(makePost({ ext: {} })).maxOutput).toBe(0)
   })
 })
 
@@ -2787,5 +2829,26 @@ describe('themes/freetoken 样式作用域（不污染全局）', () => {
     expect(styleSource).toMatch(
       /#theme-freetoken :where\(footer:not\(#article-wrapper footer\)\) \{[\s\S]*?margin-top:\s*110px/
     )
+  })
+
+  test('回归守卫：平台卡片底栏与模型卡同构，长平台名换行且徽标不被挤压', () => {
+    // 用户反馈：底栏原来是「N 个模型」一句话，和模型卡的「左说明 / 右数字」不成一体
+    const row = styleSource.match(/#theme-freetoken \.pcard \.ctxrow \{([\s\S]*?)\}/)
+    expect(row).toBeTruthy()
+    // 旧的 .pcount 单行文案样式必须移除，避免两套底栏并存
+    expect(styleSource).not.toMatch(/#theme-freetoken \.pcount \{/)
+
+    // 长平台名（如 Cloudflare Workers AI）自己换行，徽标保持内容宽度不被压成竖排
+    const name = styleSource.match(
+      /#theme-freetoken \.pcard h3 \.pname \{([\s\S]*?)\}/
+    )
+    expect(name).toBeTruthy()
+    expect(name[1]).toMatch(/overflow-wrap:\s*anywhere/)
+    const badge = styleSource.match(
+      /#theme-freetoken \.pcard h3 \.badge \{([\s\S]*?)\}/
+    )
+    expect(badge).toBeTruthy()
+    expect(badge[1]).toMatch(/flex:\s*0 0 auto/)
+    expect(badge[1]).toMatch(/white-space:\s*nowrap/)
   })
 })
