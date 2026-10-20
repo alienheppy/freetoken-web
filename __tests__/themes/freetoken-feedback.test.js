@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 const mockRouter = {
   isReady: true,
@@ -32,7 +32,15 @@ jest.mock('@/lib/config', () => ({
 jest.mock('@/themes/freetoken/components/TurnstileWidget', () => {
   const React = require('react')
   const MockTurnstile = ({ siteKey, onVerify }) => {
-    React.useEffect(() => onVerify('verified-token'), [onVerify])
+    React.useEffect(() => {
+      globalThis.__ftMockVerify = onVerify
+      if (globalThis.__ftMockAutoVerify !== false) onVerify('verified-token')
+      return () => {
+        if (globalThis.__ftMockVerify === onVerify) {
+          globalThis.__ftMockVerify = null
+        }
+      }
+    }, [onVerify])
     return (
       <div data-testid='ft-turnstile-widget' data-sitekey={siteKey} />
     )
@@ -51,6 +59,8 @@ describe('freetoken feedback page', () => {
 
   afterEach(() => {
     global.fetch = originalFetch
+    delete globalThis.__ftMockAutoVerify
+    delete globalThis.__ftMockVerify
   })
 
   test('prefills the object and turns a relative page URL into an absolute URL', () => {
@@ -125,6 +135,54 @@ describe('freetoken feedback page', () => {
     expect(screen.getByTestId('ft-feedback-page')).toBeInTheDocument()
     expect(screen.queryByTestId('ft-feedback-success')).toBeNull()
     expect(screen.getByTestId('ft-turnstile-widget')).toBeInTheDocument()
+  })
+
+  test('连续提交：成功页返回后旧令牌作废，必须重新完成人机验证', async () => {
+    globalThis.__ftMockAutoVerify = false
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ ok: true }) })
+    global.fetch = fetchMock
+
+    render(<FeedbackPage turnstileSiteKey='test-site-key' />)
+    // 第一条：完成验证后提交成功
+    await act(async () => {
+      globalThis.__ftMockVerify('token-1')
+    })
+    fireEvent.change(screen.getByLabelText('问题说明 *'), {
+      target: { value: '第一条反馈' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: '提交反馈' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('ft-feedback-success')).toBeInTheDocument()
+    )
+
+    // 令牌已随成功提交消费，回到表单时必须重新验证
+    fireEvent.click(screen.getByRole('button', { name: '再提交一条' }))
+    const submitButton = screen.getByRole('button', { name: '提交反馈' })
+    await waitFor(() => expect(submitButton).toBeDisabled())
+    expect(screen.getByTestId('ft-turnstile-widget')).toBeInTheDocument()
+
+    // 第二条：重新验证拿到新令牌，才能再次提交
+    await act(async () => {
+      globalThis.__ftMockVerify('token-2')
+    })
+    fireEvent.change(screen.getByLabelText('对象名称 *'), {
+      target: { value: '第二个对象' }
+    })
+    fireEvent.change(screen.getByLabelText('页面地址 *'), {
+      target: { value: 'https://www.freetok.org/article/second' }
+    })
+    fireEvent.change(screen.getByLabelText('问题说明 *'), {
+      target: { value: '第二条反馈' }
+    })
+    await waitFor(() => expect(submitButton).toBeEnabled())
+    fireEvent.click(submitButton)
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    expect(fetchMock.mock.calls[1][1].body).toContain(
+      '"turnstileToken":"token-2"'
+    )
   })
 
   test('keeps submission disabled when Turnstile is not configured', () => {

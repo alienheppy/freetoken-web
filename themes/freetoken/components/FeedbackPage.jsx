@@ -89,6 +89,13 @@ export default function FeedbackPage({ turnstileSiteKey = '' }) {
     setError('人机验证加载失败，请刷新页面后重试。')
   }, [])
 
+  // Turnstile 令牌一次性使用：提交（无论成功还是失败）后都必须丢弃，
+  // 并重挂验证组件换取新令牌，否则第二次提交会拿旧令牌被服务端拒绝。
+  const resetTurnstile = useCallback(() => {
+    setTurnstileToken('')
+    setTurnstileResetKey(current => current + 1)
+  }, [])
+
   const submit = async event => {
     event.preventDefault()
     if (!canSubmit) return
@@ -111,11 +118,12 @@ export default function FeedbackPage({ turnstileSiteKey = '' }) {
       if (!response.ok) {
         throw new Error(payload.error || '提交失败，请稍后再试')
       }
+      // 令牌已被消费：先清空再进成功页，避免「再提交一条」带着旧令牌回来
+      resetTurnstile()
       setStatus('success')
     } catch (e) {
       setStatus('idle')
-      setTurnstileToken('')
-      setTurnstileResetKey(current => current + 1)
+      resetTurnstile()
       setError(e.message || '提交失败，请稍后再试')
     }
   }
@@ -146,6 +154,7 @@ export default function FeedbackPage({ turnstileSiteKey = '' }) {
               className='feedback-secondary'
               onClick={() => {
                 setForm(emptyForm)
+                resetTurnstile()
                 setStatus('idle')
               }}
             >
