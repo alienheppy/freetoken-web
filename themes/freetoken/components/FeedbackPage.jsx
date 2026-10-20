@@ -136,10 +136,7 @@ export default function FeedbackPage({ turnstileSiteKey = '' }) {
           </div>
           <div className='feedback-eyebrow'>反馈已收到</div>
           <h1>谢谢你帮我们把信息变准。</h1>
-          <p>
-            我们会按 Notion
-            反馈库中的记录逐条核实。若留下电子邮件，必要时会与你联系。
-          </p>
+          <p>我们会按反馈记录逐条核实。若留下电子邮件，必要时会与你联系。</p>
           <div className='feedback-success-actions'>
             <SmartLink href='/' className='feedback-primary'>
               返回首页
@@ -177,8 +174,8 @@ export default function FeedbackPage({ turnstileSiteKey = '' }) {
           告诉我们。
         </h1>
         <p>
-          免费额度会变化，链接也会失效。你提供的一条线索，会直接进入我们的
-          Notion 反馈库，帮助下一位访客少走弯路。
+          免费额度会变化，链接也会失效。你提供的一条线索，会直接进入我们的反馈库，
+          帮助下一位访客少走弯路。
         </p>
         <div className='feedback-note'>
           <span aria-hidden='true'>●</span>
@@ -297,7 +294,7 @@ export default function FeedbackPage({ turnstileSiteKey = '' }) {
         <div className='feedback-verification'>
           <div className='feedback-verification-copy'>
             <strong>人机验证</strong>
-            <span>用于防止自动化程序批量提交。</span>
+            <span>为避免无意义的重复提交，需要人机认证后方可提交。</span>
           </div>
           {turnstileSiteKey ? (
             <TurnstileWidget
@@ -328,7 +325,7 @@ export default function FeedbackPage({ turnstileSiteKey = '' }) {
           >
             {status === 'submitting' ? '正在提交…' : '提交反馈'}
           </button>
-          <span>提交后可在 Notion 后台统一核实与追踪。</span>
+          <span>提交后我们会统一核实与追踪。</span>
         </div>
       </form>
     </main>
