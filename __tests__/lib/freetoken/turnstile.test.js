@@ -44,7 +44,7 @@ describe('verifyTurnstileToken', () => {
 
     expect(result).toEqual({ ok: true, hostname: 'www.freetok.org' })
     expect(fetchImpl).toHaveBeenCalledWith(
-      'https://challenges.cloudflare.com/turnstile/v0/api/siteverify',
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
       expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
