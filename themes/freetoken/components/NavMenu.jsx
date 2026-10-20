@@ -75,7 +75,7 @@ export default function NavMenu({ logoText, siteInfo, menu, linkHref }) {
     <nav>
       <div className='navin'>
         <SmartLink href={resolveHref('/')} className='logo'>
-          {logoText || siteInfo?.title || 'FreeTokenHub'}
+          {logoText || siteInfo?.title || 'FreeTok'}
         </SmartLink>
 
         <button

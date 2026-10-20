@@ -249,7 +249,7 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(nav).toBeTruthy()
     const navin = nav.querySelector('.navin')
     expect(navin).toBeTruthy()
-    expect(navin.querySelector('.logo').textContent).toBe('FreeTokenHub')
+    expect(navin.querySelector('.logo').textContent).toBe('FreeTok')
 
     const links = nav.querySelector('.navlinks')
     expect(links.querySelectorAll('a')).toHaveLength(3)
@@ -1149,7 +1149,7 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       id: '18d2570237f483859de481e5ed7bcf47',
       type: 'Page',
       slug: 'about',
-      title: '关于 FreeTokenHub',
+      title: '关于 FreeTok',
       summary: '这个站点是什么',
       href: '/about',
       blockMap: {
@@ -1173,7 +1173,7 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     // 单页骨架：返回首页 + 标题 + 摘要 + 正文
     const hero = screen.getByTestId('ft-page-hero')
     expect(within(hero).getByText('返回首页')).toHaveAttribute('href', '/')
-    expect(hero.querySelector('h1').textContent).toBe('关于 FreeTokenHub')
+    expect(hero.querySelector('h1').textContent).toBe('关于 FreeTok')
     expect(hero.querySelector('.herosub').textContent).toBe('这个站点是什么')
     expect(screen.getByTestId('ft-article')).toBeTruthy()
 
@@ -1230,7 +1230,7 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
   })
 
   test('THEME_CONFIG 包含 Freetoken 配置项（原设计文案）', () => {
-    expect(THEME_CONFIG.FREETOKEN_LOGO_TEXT).toBe('FreeTokenHub')
+    expect(THEME_CONFIG.FREETOKEN_LOGO_TEXT).toBe('FreeTok')
     expect(THEME_CONFIG.FREETOKEN_HERO_CTA_PRIMARY).toBe('浏览模型')
     expect(THEME_CONFIG.FREETOKEN_HERO_CTA_SECONDARY).toBe('查看平台')
     expect(THEME_CONFIG.FREETOKEN_FALLBACK_MENU).toHaveLength(3)

@@ -4,7 +4,7 @@
  */
 const CONFIG = {
   // 站点信息（原设计 layout.jsx / page.jsx 文案）
-  FREETOKEN_LOGO_TEXT: 'FreeTokenHub',
+  FREETOKEN_LOGO_TEXT: 'FreeTok',
   FREETOKEN_HERO_EYEBROW: '持续更新 · 逐条核实',
   FREETOKEN_HERO_TITLE: '免费的大模型，\n一目了然。',
   FREETOKEN_HERO_SUB: '哪些平台送、送什么模型、有什么限制 — 收录于一个页面。',
@@ -57,7 +57,7 @@ const CONFIG = {
 
   // 全站页脚（原设计 layout.jsx）
   FREETOKEN_FOOTER_TEXT:
-    'FreeTokenHub 汇总各平台免费大模型信息。免费额度随时可能调整，请以各平台官方页面为准。',
+    'FreeTok 汇总各平台免费大模型信息。免费额度随时可能调整，请以各平台官方页面为准。',
 
   // 视觉 token（同步自原 Freetoken globals.css）
   FREETOKEN_BG: '#ffffff',

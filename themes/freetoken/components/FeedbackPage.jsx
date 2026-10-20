@@ -124,10 +124,10 @@ export default function FeedbackPage({ turnstileSiteKey = '' }) {
     return (
       <main className='feedback-page' data-testid='ft-feedback-page'>
         <Head>
-          <title>信息反馈 · FreeTokenHub</title>
+          <title>信息反馈 · FreeTok</title>
           <meta
             name='description'
-            content='报告 FreeTokenHub 上的过期额度、错误信息和失效链接。'
+            content='报告 FreeTok 上的过期额度、错误信息和失效链接。'
           />
         </Head>
         <section className='feedback-success' data-testid='ft-feedback-success'>
@@ -160,10 +160,10 @@ export default function FeedbackPage({ turnstileSiteKey = '' }) {
   return (
     <main className='feedback-page' data-testid='ft-feedback-page'>
       <Head>
-        <title>信息反馈 · FreeTokenHub</title>
+        <title>信息反馈 · FreeTok</title>
         <meta
           name='description'
-          content='报告 FreeTokenHub 上的过期额度、错误信息和失效链接。'
+          content='报告 FreeTok 上的过期额度、错误信息和失效链接。'
         />
       </Head>
       <section className='feedback-intro'>
