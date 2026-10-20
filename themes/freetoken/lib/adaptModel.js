@@ -19,6 +19,8 @@
  * 输入对象视为不可变（NotionNext props 语义）。
  */
 
+import { parseJsonLenient } from '@/lib/utils/lenientJson'
+
 /** 复核窗口（天），与 CONFIG.FREETOKEN_EXPIRY_DAYS 保持一致 */
 const REVIEW_WINDOW_DAYS = 30
 
@@ -258,23 +260,15 @@ export function normalizeSourceUrl(v) {
 
 /**
  * ext 兜底解析：兼容官方已解析对象与原始 JSON 字符串（官方 convertToJSON 失败降级 {}）。
- * 字符串 parse 成功但结果为 null/数组/标量同样不是合法 ext 对象 → {}。
+ * 字符串复用 parseJsonLenient（标准 parse 优先，只在必要时修复字符串内控制字符，
+ * 因此「GitHub Models」这类带空格的值不会被改写）。
+ * parse 成功但结果为 null/数组/标量同样不是合法 ext 对象 → {}。
  */
 export function parseExt(raw) {
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) return raw
   if (typeof raw === 'string' && raw.trim()) {
-    try {
-      const v = JSON.parse(raw)
-      if (v && typeof v === 'object' && !Array.isArray(v)) return v
-    } catch (e) {
-      /* 尝试官方去空白路径 */
-    }
-    try {
-      const v = JSON.parse(raw.replace(/\s/g, ''))
-      if (v && typeof v === 'object' && !Array.isArray(v)) return v
-    } catch (e) {
-      /* 降级 */
-    }
+    const v = parseJsonLenient(raw)
+    if (v && typeof v === 'object' && !Array.isArray(v)) return v
   }
   return {}
 }
