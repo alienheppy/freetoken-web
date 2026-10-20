@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import SmartLink from '@/components/SmartLink'
+import { buildFeedbackHref } from '@/lib/freetoken/feedback'
 import { siteConfig } from '@/lib/config'
 
 import CONFIG from '../config'
@@ -80,11 +81,14 @@ export default function PlatformDetail({ platform, posts }) {
   const certified =
     Array.isArray(platform.certifications) && platform.certifications.length > 0
 
-  // 「报告过期」入口与模型详情页同源（FREETOKEN_REPORT_URL + 预填标题），
-  // 只是对象从模型名换成平台名，便于后台按平台定位是哪条档案有问题。
-  const reportHref = `${siteConfig('FREETOKEN_REPORT_URL', null, CONFIG)}${encodeURIComponent(
-    `过期报告：${platform.name}`
-  )}`
+  // 「报告过期」入口预填站内反馈页；页面地址在浏览器端补成完整 URL。
+  const reportHref = buildFeedbackHref({
+    type: '额度或信息过期',
+    objectType: '平台',
+    objectName: platform.name,
+    title: `过期报告：${platform.name}`,
+    pageUrl: `/platform/${encodeURIComponent(platform.name)}`
+  })
 
   const showCopyStatus = next => {
     clearTimeout(copyTimerRef.current)

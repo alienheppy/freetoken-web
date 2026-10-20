@@ -11,6 +11,7 @@ import { isBrowser } from '@/lib/utils'
 
 import CONFIG from './config'
 import ArticleLock from './components/ArticleLock'
+import FeedbackPage from './components/FeedbackPage'
 import {
   applyPlatformProfiles,
   collectOfferRows,
@@ -29,6 +30,7 @@ import PlatformGrid from './components/PlatformGrid'
 import SearchInput from './components/SearchInput'
 import StatsStrip from './components/StatsStrip'
 import { adaptPost, adaptPosts, isStale } from './lib/adaptModel'
+import { buildFeedbackHref } from '@/lib/freetoken/feedback'
 import { useClientToday } from './lib/useClientToday'
 
 /**
@@ -208,9 +210,13 @@ const LayoutSlug = props => {
     )
   }
 
-  const reportHref = `${siteConfig('FREETOKEN_REPORT_URL', null, CONFIG)}${encodeURIComponent(
-    `过期报告：${model.name}`
-  )}`
+  const reportHref = buildFeedbackHref({
+    type: '额度或信息过期',
+    objectType: '模型',
+    objectName: model.name,
+    title: `过期报告：${model.name}`,
+    pageUrl: post.href || `/article/${post.slug}`
+  })
 
   return (
     <div className='detail'>
@@ -288,6 +294,13 @@ const LayoutPlatform = props => {
   if (!platform) return null
   return <PlatformDetail platform={platform} posts={posts} />
 }
+
+/**
+ * 反馈页：站内提交，写入 Notion 反馈库
+ */
+const LayoutFeedback = props => (
+  <FeedbackPage turnstileSiteKey={props.turnstileSiteKey} />
+)
 
 /**
  * 归档页（原设计无对应页，沿用原设计卡片样式）
@@ -398,6 +411,7 @@ export {
   LayoutArchive,
   LayoutBase,
   LayoutCategoryIndex,
+  LayoutFeedback,
   LayoutIndex,
   LayoutPlatform,
   LayoutPostList,

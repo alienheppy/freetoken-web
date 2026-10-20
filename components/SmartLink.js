@@ -54,6 +54,8 @@ const SmartLink = ({ href, children, ...rest }) => {
     const queryString = window.location.search?.slice(1) || ''
     const params = new URLSearchParams(queryString)
     const preserved = {}
+    // 反馈页的查询串是表单预填数据，不应随着站内导航扩散到其他页面。
+    if (window.location.pathname === '/feedback') return preserved
     for (const [key, value] of params.entries()) {
       if (value !== '') preserved[key] = value
     }

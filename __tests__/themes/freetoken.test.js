@@ -826,11 +826,9 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     const report = within(root).getByTestId('ft-platform-report')
     expect(report.textContent).toContain('信息有误或额度已变化？')
     const reportLink = within(report).getByText('报告过期')
+    expect(reportLink.closest('a').getAttribute('href')).toMatch(/^\/feedback\?/)
     expect(reportLink.closest('a').getAttribute('href')).toContain(
-      'https://github.com/FreeTokenHub/FreeTokenHub/issues/new?template=expired.md&title='
-    )
-    expect(reportLink.closest('a').getAttribute('href')).toContain(
-      encodeURIComponent('过期报告：OpenRouter')
+      'objectName=OpenRouter'
     )
     // 平台档案未填核实日期时回落「待核实」（与模型页同口径）
     expect(report.textContent).toMatch(/核实日期\s*待核实/)
@@ -1070,11 +1068,9 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     // 报告入口：紧贴渠道列表下方（不再独立成灰色页脚带）
     const foot = container.querySelector('.reportline')
     const report = within(foot).getByText('报告过期')
+    expect(report.closest('a').getAttribute('href')).toMatch(/^\/feedback\?/)
     expect(report.closest('a').getAttribute('href')).toContain(
-      'https://github.com/FreeTokenHub/FreeTokenHub/issues/new?template=expired.md&title='
-    )
-    expect(report.closest('a').getAttribute('href')).toContain(
-      encodeURIComponent('过期报告：DeepSeek V3')
+      'objectName=DeepSeek+V3'
     )
     expect(within(foot).getByText(/核实日期 2026-09-09/)).toBeInTheDocument()
     // 紧跟「免费获取渠道」区块（渠道列表 → 报告行），中间不再夹灰色页脚带

@@ -55,10 +55,6 @@ const CONFIG = {
   // 因此与老站兜底一致（offers[0].api 缺失时用 OpenRouter 兼容端点）
   FREETOKEN_DEFAULT_API_BASE: 'https://openrouter.ai/api/v1',
 
-  // 详情页页脚「报告过期」入口（原设计 model/[slug]/page.jsx）
-  FREETOKEN_REPORT_URL:
-    'https://github.com/FreeTokenHub/FreeTokenHub/issues/new?template=expired.md&title=',
-
   // 全站页脚（原设计 layout.jsx）
   FREETOKEN_FOOTER_TEXT:
     'FreeTokenHub 汇总各平台免费大模型信息。免费额度随时可能调整，请以各平台官方页面为准。',

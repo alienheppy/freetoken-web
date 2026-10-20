@@ -1930,6 +1930,371 @@ const Style = () => (
       color: var(--blue);
     }
 
+    /* ---------- 用户反馈页（/feedback） ---------- */
+    #theme-freetoken .feedback-page {
+      max-width: 980px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 72px 22px 60px;
+      overflow-x: clip;
+    }
+
+    #theme-freetoken .feedback-intro {
+      max-width: 740px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0;
+      text-align: center;
+    }
+
+    #theme-freetoken .feedback-eyebrow {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--blue);
+      letter-spacing: 0.01em;
+      margin-bottom: 10px;
+    }
+
+    #theme-freetoken .feedback-intro h1 {
+      font-size: 58px;
+      line-height: 1.08;
+      letter-spacing: -0.026em;
+    }
+
+    #theme-freetoken .feedback-intro p {
+      max-width: 560px;
+      width: 100%;
+      margin: 14px auto 0;
+      font-size: 17px;
+      color: var(--sub);
+      line-height: 1.7;
+    }
+
+    #theme-freetoken .feedback-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 100%;
+      margin-top: 20px;
+      padding: 9px 16px;
+      border-radius: 980px;
+      background: var(--bg-alt);
+      border: 1px solid var(--hairline);
+      font-size: 13px;
+      color: var(--sub);
+      overflow-wrap: anywhere;
+    }
+
+    #theme-freetoken .feedback-note span {
+      font-size: 9px;
+      color: var(--green);
+    }
+
+    #theme-freetoken .feedback-form {
+      width: 100%;
+      margin-top: 38px;
+      padding: 32px 36px;
+      border: 1px solid var(--hairline);
+      border-radius: 28px;
+      background: var(--bg-alt);
+    }
+
+    #theme-freetoken .feedback-form-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    #theme-freetoken .feedback-form-head h2 {
+      font-size: 32px;
+    }
+
+    #theme-freetoken .feedback-required {
+      font-size: 12px;
+      color: var(--faint);
+      white-space: nowrap;
+    }
+
+    #theme-freetoken .feedback-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: 100%;
+      gap: 14px 18px;
+    }
+
+    #theme-freetoken .feedback-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    #theme-freetoken .feedback-field-wide {
+      grid-column: 1 / -1;
+    }
+
+    #theme-freetoken .feedback-field > span {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--txt);
+    }
+
+    #theme-freetoken .feedback-field > span em {
+      font-style: normal;
+      font-weight: 400;
+      color: var(--faint);
+    }
+
+    #theme-freetoken .feedback-field input,
+    #theme-freetoken .feedback-field select,
+    #theme-freetoken .feedback-field textarea {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      font: inherit;
+      font-size: 15px;
+      color: var(--txt);
+      background: var(--card);
+      border: 1px solid var(--hairline);
+      border-radius: 14px;
+      padding: 12px 16px;
+      outline: none;
+      transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+    }
+
+    #theme-freetoken .feedback-field textarea {
+      resize: vertical;
+      min-height: 124px;
+      line-height: 1.7;
+    }
+
+    #theme-freetoken .feedback-field input:focus,
+    #theme-freetoken .feedback-field select:focus,
+    #theme-freetoken .feedback-field textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.14);
+    }
+
+    #theme-freetoken .feedback-field input::placeholder,
+    #theme-freetoken .feedback-field textarea::placeholder {
+      color: var(--faint);
+    }
+
+    #theme-freetoken .feedback-field small {
+      font-size: 12px;
+      color: var(--faint);
+      text-align: right;
+    }
+
+    #theme-freetoken .feedback-honeypot {
+      position: absolute;
+      left: -9999px;
+      top: auto;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #theme-freetoken .feedback-error {
+      margin-top: 18px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: rgba(255, 149, 18, 0.14);
+      color: var(--amber);
+      font-size: 14px;
+    }
+
+    #theme-freetoken .feedback-verification {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--hairline);
+    }
+
+    #theme-freetoken .feedback-verification-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    #theme-freetoken .feedback-verification-copy strong {
+      font-size: 13px;
+      color: var(--txt);
+    }
+
+    #theme-freetoken .feedback-verification-copy span,
+    #theme-freetoken .feedback-turnstile-missing {
+      font-size: 12px;
+      color: var(--faint);
+    }
+
+    #theme-freetoken .feedback-turnstile-missing {
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(255, 149, 18, 0.14);
+      color: var(--amber);
+      text-align: right;
+    }
+
+    #theme-freetoken .feedback-turnstile-widget {
+      min-height: 65px;
+      flex: 0 0 auto;
+    }
+
+    #theme-freetoken .feedback-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+
+    #theme-freetoken .feedback-actions > span {
+      font-size: 12px;
+      color: var(--faint);
+    }
+
+    #theme-freetoken .feedback-primary,
+    #theme-freetoken .feedback-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 500;
+      border-radius: 980px;
+      padding: 11px 26px;
+      cursor: pointer;
+      border: 0;
+      transition: 0.18s ease;
+    }
+
+    #theme-freetoken .feedback-primary {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    #theme-freetoken .feedback-primary:hover {
+      background: #0077ed;
+    }
+
+    #theme-freetoken .feedback-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    #theme-freetoken .feedback-secondary {
+      background: var(--bg);
+      color: var(--blue);
+      border: 1px solid var(--hairline);
+    }
+
+    #theme-freetoken .feedback-secondary:hover {
+      background: rgba(0, 113, 227, 0.08);
+    }
+
+    #theme-freetoken .feedback-success {
+      max-width: 620px;
+      width: 100%;
+      margin: 60px auto 0;
+      padding: 64px 40px;
+      text-align: center;
+      border: 1px solid var(--hairline);
+      border-radius: 28px;
+      background: var(--bg-alt);
+    }
+
+    #theme-freetoken .feedback-check {
+      display: grid;
+      place-items: center;
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 22px;
+      border-radius: 50%;
+      background: rgba(52, 199, 89, 0.14);
+      color: var(--green);
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    #theme-freetoken .feedback-success h1 {
+      font-size: 42px;
+      letter-spacing: -0.022em;
+    }
+
+    #theme-freetoken .feedback-success p {
+      margin: 14px auto 0;
+      font-size: 15px;
+      color: var(--sub);
+      line-height: 1.7;
+    }
+
+    #theme-freetoken .feedback-success-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+
+    @media (max-width: 760px) {
+      #theme-freetoken .feedback-page {
+        padding: 64px 18px 44px;
+      }
+
+      #theme-freetoken .feedback-intro h1 {
+        font-size: 40px;
+      }
+
+      #theme-freetoken .feedback-form {
+        margin-top: 38px;
+        padding: 26px 20px;
+        border-radius: 22px;
+      }
+
+      #theme-freetoken .feedback-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #theme-freetoken .feedback-field-wide {
+        grid-column: 1;
+      }
+
+      #theme-freetoken .feedback-form-head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      #theme-freetoken .feedback-verification {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      #theme-freetoken .feedback-turnstile-widget {
+        width: 100%;
+      }
+
+      #theme-freetoken .feedback-success {
+        margin-top: 30px;
+        padding: 48px 22px;
+      }
+
+      #theme-freetoken .feedback-success h1 {
+        font-size: 34px;
+      }
+    }
+
     #theme-freetoken .missing {
       text-align: center;
       padding: 40px 0;
