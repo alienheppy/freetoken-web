@@ -183,10 +183,10 @@
 | `VERCEL_DEPLOY_HOOK_URL` | 全站结构变化时触发 Vercel 重建，仅从服务端环境变量读取 |
 | `DEBUG` | 调试按钮 |
 
-`POST /api/revalidate` 的 `path`/`paths` 模式只刷新 Next.js 页面缓存，不主动刷新
-Notion 数据缓存；新增、删除、改名或菜单/标题等全站变化请传 `{ "all": true }`
-或 `{ "mode": "full" }`，由 Vercel Deploy Hook 完整重建，避免在函数请求里重建
-整站 Notion 数据导致超时。
+`POST /api/revalidate` 在本地开发时可直接刷新 `path`/`paths`。在 Vercel 上，单页
+重建仍可能重新装配整套 Notion 数据并超过函数时限，因此所有刷新型请求都会统一
+触发 Vercel Deploy Hook，完整重建后再切换静态页面。新增、删除、改名或菜单/标题
+等全站变化可直接传 `{ "all": true }` 或 `{ "mode": "full" }`。
 
 ## 联系方式（conf/contact.config.js）
 

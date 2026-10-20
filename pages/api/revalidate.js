@@ -21,11 +21,11 @@ export const config = {
  *   { "all": true }
  *   { "mode": "full" }
  *
- * Path revalidation only refreshes the Next.js page cache. It deliberately
- * does not rotate the shared data-cache generation: that would force the next
- * page build to re-fetch the entire Notion site and can exceed the function
- * timeout. Notion-wide changes must use `all: true` or `mode: "full"`, which
- * trigger a Vercel Deploy Hook and rebuild all static routes.
+ * Locally, paths are revalidated directly for testing. On Vercel, all requests
+ * trigger a Deploy Hook instead: rebuilding a route inside a serverless
+ * function can still assemble the full Notion data set and exceed the function
+ * timeout. Vercel builds do not have that request-duration limit and regenerate
+ * every static route from the same committed source.
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -91,6 +91,10 @@ export default async function handler(req, res) {
       })
     }
 
+    if (isVercelDeployment()) {
+      return await handleFullRebuild(res, reason, normalized)
+    }
+
     const batch = await revalidatePaths(res, normalized, {
       deadlineMs: resolveRevalidateDeadlineMs()
     })
@@ -121,7 +125,7 @@ export default async function handler(req, res) {
   }
 }
 
-async function handleFullRebuild(res, reason) {
+async function handleFullRebuild(res, reason, requestedPaths = []) {
   const deploy = await triggerVercelDeployHook(reason)
 
   if (!deploy.configured) {
@@ -146,10 +150,16 @@ async function handleFullRebuild(res, reason) {
     accepted: true,
     message: 'Vercel rebuild queued. The new deployment will regenerate routes.',
     mode: 'full',
-    dataRefreshed: true,
+    dataRefreshed: false,
+    rebuildQueued: true,
+    requestedPaths,
     generation: null,
     deploy
   })
+}
+
+function isVercelDeployment() {
+  return process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV)
 }
 
 async function revalidatePaths(

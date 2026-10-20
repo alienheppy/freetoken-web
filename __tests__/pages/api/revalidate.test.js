@@ -36,12 +36,16 @@ describe('/api/revalidate', () => {
   const originalToken = process.env.REVALIDATION_TOKEN
   const originalDeployHook = process.env.VERCEL_DEPLOY_HOOK_URL
   const originalDeadline = process.env.REVALIDATE_DEADLINE_MS
+  const originalVercel = process.env.VERCEL
+  const originalVercelEnv = process.env.VERCEL_ENV
 
   beforeEach(() => {
     jest.clearAllMocks()
     process.env.REVALIDATION_TOKEN = 'test-token'
     delete process.env.VERCEL_DEPLOY_HOOK_URL
     delete process.env.REVALIDATE_DEADLINE_MS
+    delete process.env.VERCEL
+    delete process.env.VERCEL_ENV
     triggerVercelDeployHook.mockResolvedValue({
       configured: true,
       triggered: true,
@@ -57,6 +61,10 @@ describe('/api/revalidate', () => {
     else process.env.VERCEL_DEPLOY_HOOK_URL = originalDeployHook
     if (originalDeadline === undefined) delete process.env.REVALIDATE_DEADLINE_MS
     else process.env.REVALIDATE_DEADLINE_MS = originalDeadline
+    if (originalVercel === undefined) delete process.env.VERCEL
+    else process.env.VERCEL = originalVercel
+    if (originalVercelEnv === undefined) delete process.env.VERCEL_ENV
+    else process.env.VERCEL_ENV = originalVercelEnv
   })
 
   it('rejects non-POST requests', async () => {
@@ -84,6 +92,28 @@ describe('/api/revalidate', () => {
         mode: 'page-only',
         dataRefreshed: false,
         generation: null
+      })
+    )
+  })
+
+  it('queues a Vercel rebuild for path requests on Vercel', async () => {
+    process.env.VERCEL = '1'
+    const res = createResponse()
+    await handler(
+      createRequest({ path: '/article/demo', reason: 'notion-edit' }),
+      res
+    )
+
+    expect(res.revalidate).not.toHaveBeenCalled()
+    expect(triggerVercelDeployHook).toHaveBeenCalledWith('notion-edit')
+    expect(res.status).toHaveBeenCalledWith(202)
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accepted: true,
+        mode: 'full',
+        dataRefreshed: false,
+        rebuildQueued: true,
+        requestedPaths: ['/article/demo']
       })
     )
   })
@@ -130,7 +160,8 @@ describe('/api/revalidate', () => {
       expect.objectContaining({
         accepted: true,
         mode: 'full',
-        dataRefreshed: true
+        dataRefreshed: false,
+        rebuildQueued: true
       })
     )
 
