@@ -1,13 +1,18 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import SmartLink from '@/components/SmartLink'
 
 import { siteConfig } from '@/lib/config'
 
 import CONFIG from '../config'
-import { paginate, platformCards, platformHref } from '../lib/modelView'
+import {
+  filterPlatforms,
+  paginate,
+  platformCards,
+  platformHref
+} from '../lib/modelView'
 import Pagination from './Pagination'
 
 /**
@@ -22,13 +27,23 @@ import Pagination from './Pagination'
  * 通过样式提到覆盖层之上，保持可点（避免 <a> 嵌套 <a>）。
  *
  * 平台数量随收录增长，与模型库一致在前端分页（每页 9 张 = 3 列 × 3 行）。
+ * keyword 由首页搜索框受控下发：与上方模型库同一关键词，命中平台名/简介/网址。
  */
-export default function PlatformGrid({ models, platformProfiles, stats }) {
-  const platforms = useMemo(
+export default function PlatformGrid({
+  models,
+  platformProfiles,
+  stats,
+  keyword = ''
+}) {
+  const allPlatforms = useMemo(
     // stats.platformCounts 为服务端全量口径的「平台 → 模型数」：
     // 首页 models 会被 POSTS_PER_PAGE 截断，只靠它数会偏小（实测 Apinex 7 → 5）。
     () => platformCards(models, platformProfiles, stats?.platformCounts),
     [models, platformProfiles, stats]
+  )
+  const platforms = useMemo(
+    () => filterPlatforms(allPlatforms, keyword),
+    [allPlatforms, keyword]
   )
   const [page, setPage] = useState(1)
   const perPage = Number(
@@ -39,10 +54,23 @@ export default function PlatformGrid({ models, platformProfiles, stats }) {
     [platforms, page, perPage]
   )
 
-  if (platforms.length === 0) {
+  // 关键词变化后回到第 1 页，避免命中结果较少时落在末页
+  useEffect(() => {
+    setPage(1)
+  }, [keyword])
+
+  if (allPlatforms.length === 0) {
     return (
       <div className='plats' data-testid='ft-platforms'>
         <div className='empty'>暂无可汇总的平台数据，等待 Notion 后台同步。</div>
+      </div>
+    )
+  }
+
+  if (platforms.length === 0) {
+    return (
+      <div className='plats' data-testid='ft-platforms'>
+        <div className='empty'>没有符合条件的平台。</div>
       </div>
     )
   }

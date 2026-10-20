@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/router'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import NotionPage from '@/components/NotionPage'
 import SmartLink from '@/components/SmartLink'
@@ -55,6 +55,9 @@ const LayoutIndex = props => {
   const { posts, platformProfiles, freetokenStats } = props
   const models = useMemo(() => adaptPosts(posts), [posts])
   const today = useClientToday()
+  // 首页只保留一个搜索框（位于模型库），关键词同时过滤模型与平台，
+  // 避免同一页出现两个语义不同的搜索入口。
+  const [keyword, setKeyword] = useState('')
 
   return (
     <>
@@ -75,7 +78,12 @@ const LayoutIndex = props => {
             {siteConfig('FREETOKEN_MODELS_NOTICE', null, CONFIG)}
           </div>
         </div>
-        <ModelToolbar models={models} today={today} />
+        <ModelToolbar
+          models={models}
+          today={today}
+          keyword={keyword}
+          onKeywordChange={setKeyword}
+        />
       </section>
 
       <section id='platforms'>
@@ -89,6 +97,7 @@ const LayoutIndex = props => {
           models={models}
           platformProfiles={platformProfiles}
           stats={freetokenStats}
+          keyword={keyword}
         />
       </section>
     </>

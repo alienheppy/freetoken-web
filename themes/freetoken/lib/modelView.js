@@ -143,7 +143,10 @@ export function filterAndSortModels(models, options = {}) {
 
   let result = list.filter(m => {
     if (kw) {
-      const text = `${modelName(m)} ${m.provider || ''} ${m.id || ''}`.toLowerCase()
+      // 平台名（AMD / Kiraai…）也算命中：平台卡片与模型卡片共用同一个搜索框，
+      // 输入平台名时用户期望看到「这个平台免费提供哪些模型」。
+      const platforms = Array.isArray(m.platforms) ? m.platforms.join(' ') : ''
+      const text = `${modelName(m)} ${m.provider || ''} ${m.id || ''} ${platforms}`.toLowerCase()
       if (!text.includes(kw)) return false
     }
     if (provider !== ALL_PROVIDERS && m.provider !== provider) return false
@@ -171,6 +174,23 @@ export function filterAndSortModels(models, options = {}) {
   }
 
   return result
+}
+
+/**
+ * 平台卡片的关键词过滤（与模型库共用同一个搜索框）。
+ * 匹配平台名 / 简介 / 网址，大小写不敏感；空关键词原样返回。
+ * @param {Array} cards platformCards 输出
+ * @param {string} kw
+ * @returns {Array}
+ */
+export function filterPlatforms(cards, kw) {
+  const list = Array.isArray(cards) ? cards.filter(c => c && typeof c === 'object') : []
+  const key = String(kw || '').trim().toLowerCase()
+  if (!key) return list
+  return list.filter(c => {
+    const text = `${c.name || ''} ${c.limits || ''} ${c.url || ''}`.toLowerCase()
+    return text.includes(key)
+  })
 }
 
 /**

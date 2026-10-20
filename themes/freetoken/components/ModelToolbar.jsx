@@ -18,13 +18,17 @@ import Pagination from './Pagination'
 /**
  * 首页模型库工具栏 + 卡片网格（原设计 page.jsx 的 toolbar / provbar / grid / empty）
  * 行为与原设计一致：
- *   - 搜索：模型名 + 厂商 + 模型 ID，实时过滤（不区分大小写）
+ *   - 搜索：模型名 + 厂商 + 模型 ID + 平台名，实时过滤（不区分大小写）
  *   - 能力 chips：全部 / 视觉 / 工具调用 / 深度推理 / 128K+
  *   - 排序下拉：默认 / 供应商最多 / A → Z
  *   - 供应商 chips：全部 + 出现过的厂商
+ *
+ * 关键词可由父组件受控传入（首页搜索框同时过滤下方平台卡片）：
+ * 传 keyword 即为受控，否则保持自身状态（列表页/测试单独使用）。
  */
-export default function ModelToolbar({ models, today }) {
-  const [kw, setKw] = useState('')
+export default function ModelToolbar({ models, today, keyword, onKeywordChange }) {
+  const [localKw, setLocalKw] = useState('')
+  const kw = keyword === undefined ? localKw : keyword
   const [filter, setFilter] = useState('all')
   const [prov, setProv] = useState(ALL_PROVIDERS)
   const [sort, setSort] = useState('default')
@@ -52,6 +56,12 @@ export default function ModelToolbar({ models, today }) {
     setPage(1)
   }
 
+  const changeKeyword = next => {
+    if (keyword === undefined) setLocalKw(next)
+    if (onKeywordChange) onKeywordChange(next)
+    setPage(1)
+  }
+
   return (
     <>
       <div className='toolbar'>
@@ -61,7 +71,7 @@ export default function ModelToolbar({ models, today }) {
           aria-label={siteConfig('FREETOKEN_SEARCH_PLACEHOLDER', null, CONFIG)}
           placeholder={siteConfig('FREETOKEN_SEARCH_PLACEHOLDER', null, CONFIG)}
           value={kw}
-          onChange={e => resetTo(setKw)(e.target.value)}
+          onChange={e => changeKeyword(e.target.value)}
         />
         {FILTERS.map(f => (
           <button

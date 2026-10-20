@@ -311,7 +311,7 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     const toolbar = container.querySelectorAll('.toolbar')
     expect(toolbar).toHaveLength(2)
     expect(toolbar[1]).toHaveClass('provbar')
-    expect(screen.getByPlaceholderText('搜索模型或厂商')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('搜索模型、平台或厂商')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '视觉' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '工具调用' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '深度推理' })).toBeInTheDocument()
@@ -412,7 +412,7 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
 
   test('首页工具栏行为与原设计一致：搜索(名/厂/ID)、能力筛选、供应商筛选、排序', () => {
     const { container } = render(<LayoutIndex posts={mockPosts} />)
-    const search = screen.getByPlaceholderText('搜索模型或厂商')
+    const search = screen.getByPlaceholderText('搜索模型、平台或厂商')
 
     // 搜索模型名
     fireEvent.change(search, { target: { value: 'claude' } })
@@ -457,6 +457,33 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
       within(screen.getByTestId('ft-sortmenu')).getByText('供应商最多')
     )
     expect(cardNames()).toEqual(['Legacy Model', 'GPT-4o', 'Claude 3'])
+  })
+
+  test('搜索框统一搜索：命中平台名时模型与平台两侧同时过滤', () => {
+    const { container } = render(<LayoutIndex posts={mockPosts} />)
+    const search = screen.getByPlaceholderText('搜索模型、平台或厂商')
+
+    // OpenRouter 是 GPT-4o / Legacy Model 的平台标签 → 上方只留这两个模型
+    fireEvent.change(search, { target: { value: 'openrouter' } })
+    expect(cardNames()).toEqual(['GPT-4o', 'Legacy Model'])
+    // 下方平台卡片同样只剩 OpenRouter，其余平台被过滤
+    const platformNames = () =>
+      Array.from(
+        container.querySelectorAll('[data-testid="ft-platform"] .pname')
+      ).map(el => el.textContent)
+    expect(platformNames()).toEqual(['OpenRouter'])
+
+    // 清空后两侧都恢复
+    fireEvent.change(search, { target: { value: '' } })
+    expect(cardNames()).toHaveLength(3)
+    expect(platformNames()).toEqual(
+      expect.arrayContaining(['OpenRouter', 'GitHub Models', 'Groq Cloud'])
+    )
+
+    // 无命中时给出明确空态，而不是留一片空白
+    fireEvent.change(search, { target: { value: '不存在的平台' } })
+    expect(screen.getByText('没有符合条件的模型。')).toBeInTheDocument()
+    expect(screen.getByText('没有符合条件的平台。')).toBeInTheDocument()
   })
 
   test('排序菜单：选中后收起（不再挂在页面上），再次开启可切换', () => {
@@ -618,7 +645,7 @@ describe('themes/freetoken 官方 9 Layout 契约', () => {
     expect(screen.getAllByTestId('ft-model-card')).toHaveLength(2)
 
     // 搜索命中 1 条 → 总页数变 1，翻页控件消失，且不会停在越界页
-    fireEvent.change(screen.getByPlaceholderText('搜索模型或厂商'), {
+    fireEvent.change(screen.getByPlaceholderText('搜索模型、平台或厂商'), {
       target: { value: 'Model 00' }
     })
     expect(container.querySelectorAll('.mcard')).toHaveLength(1)

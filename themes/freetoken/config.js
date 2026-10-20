@@ -17,7 +17,7 @@ const CONFIG = {
     'OpenAI 兼容接口，注册获取 Key，替换 base_url 即可调用。',
   FREETOKEN_MODELS_NOTICE:
     '免费额度具有时效性，随时可能调整。每条数据均标注核实日期，请以平台官网为准。',
-  FREETOKEN_SEARCH_PLACEHOLDER: '搜索模型或厂商',
+  FREETOKEN_SEARCH_PLACEHOLDER: '搜索模型、平台或厂商',
 
   // 平台区块文案（原设计 page.jsx）
   FREETOKEN_PLATFORMS_TITLE: '免费平台一览。',

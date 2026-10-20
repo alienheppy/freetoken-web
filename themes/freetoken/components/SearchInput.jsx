@@ -4,7 +4,7 @@ import { useGlobal } from '@/lib/global'
 import { useRouter } from 'next/router'
 import { useImperativeHandle, useRef, useState } from 'react'
 
-const FALLBACK_PLACEHOLDER = '搜索模型或厂商'
+const FALLBACK_PLACEHOLDER = '搜索模型、平台或厂商'
 
 /**
  * 站内搜索输入框（主题本地实现，契约同官方 example 主题：props = { currentTag, keyword, cRef }）
