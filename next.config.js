@@ -220,7 +220,9 @@ const preBuild = (function () {
 })()
 
 function isVersionedPageBlockCacheKey(key) {
-  return /^page_block_.+_\d{10,}$/.test(String(key || ''))
+  // Runtime Cache generation prefixes are optional so old cache entries and
+  // local development entries keep the same pruning behavior.
+  return /^(?:[^:]+:)?page_block_.+_\d{10,}$/.test(String(key || ''))
 }
 
 /**

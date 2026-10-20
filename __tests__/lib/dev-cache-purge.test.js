@@ -67,6 +67,7 @@ describe('next.config dev 会话缓存清理', () => {
     const future = Date.now() + 300 * 1000
     writeEntry(dataDir, 'kept-1.json', 'page_block_3fa25702-37f4-81c9-b95d-df991bfbb2d7_1792030627895', future)
     writeEntry(dataDir, 'kept-2.json', 'page_block_3fa25702-37f4-8171-8289-d3f9c60024d5_1792030625511', future)
+    writeEntry(dataDir, 'kept-prefixed.json', 'generation-a:page_block_3fa25702-37f4-81c9-b95d-df991bfbb2d7_1792030627895', future)
     writeEntry(dataDir, 'global-default.json', 'global_data_default_6172570237f48209994f01fd7bd22158')
     writeEntry(dataDir, 'global-zh.json', 'global_data_zh-CN_6172570237f48209994f01fd7bd22158')
     writeEntry(dataDir, 'site.json', 'site_6172570237f48209994f01fd7bd22158')
@@ -77,7 +78,11 @@ describe('next.config dev 会话缓存清理', () => {
 
     loadNextConfigAsDev(root)
 
-    expect(listFiles(dataDir)).toEqual(['kept-1.json', 'kept-2.json'])
+    expect(listFiles(dataDir)).toEqual([
+      'kept-1.json',
+      'kept-2.json',
+      'kept-prefixed.json'
+    ])
   })
 
   it('损坏的缓存文件一并清理（解析失败视为无版本）', () => {

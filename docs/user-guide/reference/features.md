@@ -179,7 +179,14 @@
 | `REDIS_URL` | Redis 缓存 |
 | `ENABLE_CACHE` | 文件/内存缓存 |
 | `ENABLE_FILE_CACHE` | 文件缓存 |
+| `CACHE_GENERATION_ENABLED` | 使用 Vercel Runtime Cache 版本号；本地默认关闭，Vercel 生产自动开启 |
+| `VERCEL_DEPLOY_HOOK_URL` | 全站结构变化时触发 Vercel 重建，仅从服务端环境变量读取 |
 | `DEBUG` | 调试按钮 |
+
+`POST /api/revalidate` 的 `path`/`paths` 模式只刷新 Next.js 页面缓存，不主动刷新
+Notion 数据缓存；新增、删除、改名或菜单/标题等全站变化请传 `{ "all": true }`
+或 `{ "mode": "full" }`，由 Vercel Deploy Hook 完整重建，避免在函数请求里重建
+整站 Notion 数据导致超时。
 
 ## 联系方式（conf/contact.config.js）
 

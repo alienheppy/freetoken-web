@@ -19,7 +19,8 @@ import path from 'path'
 const ENV_KEYS = [
   'NOTION_NEXT_NOTION_CACHE_DIR',
   'ENABLE_CACHE',
-  'NOTION_DATA_CACHE_TTL_SECOND'
+  'NOTION_DATA_CACHE_TTL_SECOND',
+  'CACHE_GENERATION_ENABLED'
 ]
 
 function snapshotEnv() {
@@ -237,5 +238,33 @@ describe('Notion 派生缓存有效期', () => {
       if (prevLifecycle === undefined) delete process.env.npm_lifecycle_event
       else process.env.npm_lifecycle_event = prevLifecycle
     }
+  })
+
+  it('启用共享 generation 后，轮换版本号会使旧缓存键失效', async () => {
+    const { root, dataDir, mod } = loadCacheManager({ ttl: 3600 })
+    roots.push(root)
+    process.env.CACHE_GENERATION_ENABLED = 'true'
+
+    const { bumpCacheGeneration } = require('@/lib/cache/cache_generation')
+    const { getOrSetDataWithCache } = mod
+    const key = 'global_data_default_generation-test'
+    let calls = 0
+    const fetcher = async () => ({ n: ++calls })
+
+    expect(await getOrSetDataWithCache(key, fetcher)).toEqual({ n: 1 })
+    expect(
+      fs
+        .readdirSync(dataDir)
+        .map(name => JSON.parse(fs.readFileSync(path.join(dataDir, name), 'utf8')).key)
+    ).toEqual([`0:${key}`])
+
+    const rotated = await bumpCacheGeneration('test')
+    expect(await getOrSetDataWithCache(key, fetcher)).toEqual({ n: 2 })
+    expect(
+      fs
+        .readdirSync(dataDir)
+        .map(name => JSON.parse(fs.readFileSync(path.join(dataDir, name), 'utf8')).key)
+        .sort()
+    ).toEqual([`0:${key}`, `${rotated.current}:${key}`].sort())
   })
 })
